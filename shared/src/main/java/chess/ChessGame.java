@@ -1,6 +1,10 @@
 package chess;
 
+import java.util.ArrayList;
 import java.util.Collection;
+
+import static chess.ChessPiece.PieceType.ROOK;
+import static java.lang.Math.abs;
 
 /**
  * For a class that can manage a chess game, making moves on a board
@@ -9,9 +13,24 @@ import java.util.Collection;
  * signature of the existing methods.
  */
 public class ChessGame {
+    private ChessBoard GameBoard;
+    private TeamColor TurnTeam;
+    private boolean GameOver;
+    //特殊棋子移动
+    private Boolean blackKingMoved = false;
+    private Boolean whiteKingMoved = false;
+    private Boolean blackLeftRookMoved = false;
+    private Boolean whiteLeftRookMoved = false;
+    private Boolean blackRightRookMoved = false;
+    private Boolean whiteRightRookMoved = false;
+    private ChessPosition pawnMovedTwo = null;
+
 
     public ChessGame() {
-
+        GameBoard = new ChessBoard();
+        GameBoard.resetBoard();
+        TurnTeam = TeamColor.WHITE;
+        GameOver = false;
     }
 
     /**
