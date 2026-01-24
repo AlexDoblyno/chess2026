@@ -1,4 +1,4 @@
-package piecemoves;
+package chess.piecemoves;
 
 public class PawnMoves {
 }
