@@ -1,4 +1,11 @@
 package chess.piecemoves;
 
-public class QueenMoves {
-}
+import chess.ChessBoard;
+import chess.ChessPosition;
+
+public class QueenMoves extends PieceMovesFar {
+
+    public QueenMoves(ChessBoard GameBoard, ChessPosition StartPosition) {
+        super(GameBoard, StartPosition);
+        calculateMoves();
+    }
