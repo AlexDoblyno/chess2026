@@ -8,3 +8,12 @@ public class BishopMoves extends PieceMovesFar {
         super(GameBoard, StartPosition);
         calculateMoves();
     }
+
+    @Override
+    public void calculateMoves() {
+        checkLine(-1, -1);
+        checkLine(1, 1);
+        checkLine(1, -1);
+        checkLine(-1, 1);
+    }
+}
