@@ -102,12 +102,12 @@ public class ChessBoard {
             }
         }
     }
-    public void PrintBoard() {
+    public void printBoard() {
         for (int temprow = 0; temprow < 8; temprow++){
             for (int tempcol = 0; tempcol < 8; tempcol++) {
                 if (GameBoard[temprow][tempcol] != null) {
                     ChessPiece selectedPiece = GameBoard[temprow][tempcol];
-                    PrintPiece(selectedPiece);
+                    printPiece(selectedPiece);
                 }
                 else {
                     System.out.print("[   ]");
@@ -116,7 +116,7 @@ public class ChessBoard {
             System.out.println();
         }
     } //打印期盼
-    private void PrintPiece(ChessPiece selectedPiece){
+    private void printPiece(ChessPiece selectedPiece){
         if (selectedPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
             System.out.print("[B");
         }

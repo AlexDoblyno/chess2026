@@ -12,8 +12,8 @@ public class KingMoves extends PieceMoves {
     @Override
     public void calculateMoves() {
         ChessPosition checkPosition;
-        for (int row = StartPosition.getRow() - 1; row <= StartPosition.getRow() + 1; row++) {
-            for (int col = StartPosition.getColumn() - 1; col <= StartPosition.getColumn() + 1; col++) {
+        for (int row = startPosition.getRow() - 1; row <= startPosition.getRow() + 1; row++) {
+            for (int col = startPosition.getColumn() - 1; col <= startPosition.getColumn() + 1; col++) {
                 if(isInBounds(row, col)) {
                     checkPosition = new ChessPosition(row, col);
                     checkSpace(checkPosition);

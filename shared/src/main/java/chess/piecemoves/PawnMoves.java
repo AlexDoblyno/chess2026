@@ -19,7 +19,7 @@ public class PawnMoves extends PieceMoves {
     }
 
     private void setDirection() {
-        if (Team == ChessGame.TeamColor.BLACK) {
+        if (team == ChessGame.TeamColor.BLACK) {
             direction = -1;
             endzone = 1;
         }
@@ -30,22 +30,22 @@ public class PawnMoves extends PieceMoves {
     }
 
     private boolean isFirstMove() {
-        if (Team == ChessGame.TeamColor.BLACK && StartPosition.getRow() == 7) {
+        if (team == ChessGame.TeamColor.BLACK && startPosition.getRow() == 7) {
             return true;
         }
-        else return Team == ChessGame.TeamColor.WHITE && StartPosition.getRow() == 2;
+        else return team == ChessGame.TeamColor.WHITE && startPosition.getRow() == 2;
     }
 
     private void checkCorners() {
         int row;
         ChessPiece targetedPiece;
         ChessPosition checkPosition;
-        for (int i = StartPosition.getColumn() - 1; i <= StartPosition.getColumn() + 1; i+=2) {
-            row = StartPosition.getRow() + direction;
+        for (int i = startPosition.getColumn() - 1; i <= startPosition.getColumn() + 1; i+=2) {
+            row = startPosition.getRow() + direction;
             if (isInBounds(row, i)) {
                 checkPosition = new ChessPosition(row, i);
-                targetedPiece = GameBoard.getPiece(checkPosition);
-                if (targetedPiece != null && targetedPiece.getTeamColor() != Team) {
+                targetedPiece = gameBoard.getPiece(checkPosition);
+                if (targetedPiece != null && targetedPiece.getTeamColor() != team) {
                     addMove(checkPosition);
                 }
             }
@@ -53,12 +53,12 @@ public class PawnMoves extends PieceMoves {
     }
 
     private void checkFront() {
-        ChessPosition checkPosition = new ChessPosition(StartPosition.getRow() + direction, StartPosition.getColumn());
-        if(GameBoard.getPiece(checkPosition) == null) {
+        ChessPosition checkPosition = new ChessPosition(startPosition.getRow() + direction, startPosition.getColumn());
+        if(gameBoard.getPiece(checkPosition) == null) {
             addMove(checkPosition);
             if (isFirstMove()) {
                 checkPosition = new ChessPosition(checkPosition.getRow() + direction, checkPosition.getColumn());
-                if(GameBoard.getPiece(checkPosition) == null) {
+                if(gameBoard.getPiece(checkPosition) == null) {
                     addMove(checkPosition);
                 }
             }
@@ -70,14 +70,14 @@ public class PawnMoves extends PieceMoves {
             promote(EndPosition);
         }
         else {
-            MoveList.add(new ChessMove(StartPosition, EndPosition));
+            moveList.add(new ChessMove(startPosition, EndPosition));
         }
     }
 
     private void promote (ChessPosition EndPosition) {
-        MoveList.add(new ChessMove(StartPosition, EndPosition, ChessPiece.PieceType.ROOK));
-        MoveList.add(new ChessMove(StartPosition, EndPosition, ChessPiece.PieceType.KNIGHT));
-        MoveList.add(new ChessMove(StartPosition, EndPosition, ChessPiece.PieceType.BISHOP));
-        MoveList.add(new ChessMove(StartPosition, EndPosition, ChessPiece.PieceType.QUEEN));
+        moveList.add(new ChessMove(startPosition, EndPosition, ChessPiece.PieceType.ROOK));
+        moveList.add(new ChessMove(startPosition, EndPosition, ChessPiece.PieceType.KNIGHT));
+        moveList.add(new ChessMove(startPosition, EndPosition, ChessPiece.PieceType.BISHOP));
+        moveList.add(new ChessMove(startPosition, EndPosition, ChessPiece.PieceType.QUEEN));
     }
 }

@@ -12,10 +12,10 @@ public class CheckDeterminer {
 
         ChessPosition kingPosition = findKing(teamColor); //找到King
         if (kingPosition != null) {
-            if (CheckKingStraights(kingPosition)) {
+            if (checkKingStraights(kingPosition)) {
                 return true;
             }
-            return CheckKingKnights(kingPosition); //检查King四面八方有无敌人
+            return checkKingKnights(kingPosition); //检查King四面八方有无敌人
         }
         return false;
     }
@@ -35,7 +35,7 @@ public class CheckDeterminer {
         return null;
     }
 
-    private boolean CheckKingStraights(ChessPosition kingPosition) {
+    private boolean checkKingStraights(ChessPosition kingPosition) {
         for (int rowMod = -1; rowMod <= 1; rowMod++) {
             for (int colMod = -1; colMod <= 1; colMod++) {
                 if (rowMod != 0 || colMod != 0) {
@@ -78,7 +78,7 @@ public class CheckDeterminer {
         // If the danger move is in the move list, the king is in check.
         return targetMoves.contains(dangerMove) || targetMoves.contains(pawnDangerMove);
     }
-    private boolean CheckKingKnights(ChessPosition kingPosition) {
+    private boolean checkKingKnights(ChessPosition kingPosition) {
         int kingRow = kingPosition.getRow();
         int kingCol = kingPosition.getColumn();
         ChessGame.TeamColor kingColor = GameBoard.getPiece(kingPosition).getTeamColor();

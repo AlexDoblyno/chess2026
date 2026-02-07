@@ -16,11 +16,11 @@ public class CheckStalemate {
             if (teamMoves.isEmpty()) {
                 return true;
             }
-            return GarbageBoardState();
+            return garbageBoardState();
         }
         return false;
     }
-    private boolean GarbageBoardState() {
+    private boolean garbageBoardState() {
         if (containsNoLimitMovers()) {
             return false;
         }
