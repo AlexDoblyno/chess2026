@@ -1,75 +1,75 @@
 package chess;
 
 public class CastlingHistory {
-    boolean WHITEKingRookMoved;
-    boolean WHITEQueenRookMoved;
-    boolean BLACKKingRookMoved;
-    boolean BLACKQueenRookMoved;
-    boolean WHITEKingMoved;
-    boolean BLACKKingMoved;
+    boolean whiteKingRookMoved;
+    boolean whiteQueenRookMoved;
+    boolean blackKingRookMoved;
+    boolean blackQueenRookMoved;
+    boolean whiteKingMoved;
+    boolean blackKingMoved;
 
     CastlingHistory() {
-        WHITEKingMoved = false;
-        BLACKKingMoved = false;
-        WHITEKingRookMoved = false;
-        BLACKKingRookMoved = false;
-        WHITEQueenRookMoved = false;
-        BLACKQueenRookMoved = false;
+        whiteKingMoved = false;
+        blackKingMoved = false;
+        whiteKingRookMoved = false;
+        blackKingRookMoved = false;
+        whiteQueenRookMoved = false;
+        blackQueenRookMoved = false;
     } //王车易位前，检测王与车有无移动，若是先前移动，无法王车易位
 
     public void resetHistory() {
-        WHITEKingMoved = false;
-        BLACKKingMoved = false;
-        WHITEKingRookMoved = false;
-        BLACKKingRookMoved = false;
-        WHITEQueenRookMoved = false;
-        BLACKQueenRookMoved = false;
+        whiteKingMoved = false;
+        blackKingMoved = false;
+        whiteKingRookMoved = false;
+        blackKingRookMoved = false;
+        whiteQueenRookMoved = false;
+        blackQueenRookMoved = false;
     }
-    public boolean isWHITEKingRookMoved() {
-        return  WHITEKingRookMoved;
-    }
-
-    public void setWHITEKingRookMoved(boolean WHITEKingRookMoved) {
-        this.WHITEKingRookMoved =  WHITEKingRookMoved;
+    public boolean isWhiteKingRookMoved() {
+        return whiteKingRookMoved;
     }
 
-    public boolean isWHITEQueenRookMoved() {
-        return WHITEQueenRookMoved;
+    public void setWhiteKingRookMoved(boolean whiteKingRookMoved) {
+        this.whiteKingRookMoved = whiteKingRookMoved;
     }
 
-    public void setWHITEQueenRookMoved(boolean WHITEQueenRookMoved) {
-        this.WHITEQueenRookMoved = WHITEQueenRookMoved;
+    public boolean isWhiteQueenRookMoved() {
+        return whiteQueenRookMoved;
     }
 
-    public boolean isBLACKKingRookMoved() {
-        return BLACKKingRookMoved;
+    public void setWhiteQueenRookMoved(boolean whiteQueenRookMoved) {
+        this.whiteQueenRookMoved = whiteQueenRookMoved;
     }
 
-    public void setBLACKKingRookMoved(boolean BLACKKingRookMoved) {
-        this.BLACKKingRookMoved = BLACKKingRookMoved;
+    public boolean isBlackKingRookMoved() {
+        return blackKingRookMoved;
     }
 
-    public boolean isBLACKQueenRookMoved() {
-        return BLACKQueenRookMoved;
+    public void setBlackKingRookMoved(boolean blackKingRookMoved) {
+        this.blackKingRookMoved = blackKingRookMoved;
     }
 
-    public void setBLACKQueenRookMoved(boolean  BLACKQueenRookMoved) {
-        this. BLACKQueenRookMoved =  BLACKQueenRookMoved;
+    public boolean isBlackQueenRookMoved() {
+        return blackQueenRookMoved;
     }
 
-    public boolean isWHITEKingMoved() {
-        return WHITEKingMoved;
+    public void setBlackQueenRookMoved(boolean blackQueenRookMoved) {
+        this.blackQueenRookMoved = blackQueenRookMoved;
     }
 
-    public void setWHITEKingMoved(boolean WHITEKingMoved) {
-        this.WHITEKingMoved = WHITEKingMoved;
+    public boolean isWhiteKingMoved() {
+        return whiteKingMoved;
     }
 
-    public boolean isBLACKKingMoved () {
-        return BLACKKingMoved;
+    public void setWhiteKingMoved(boolean whiteKingMoved) {
+        this.whiteKingMoved = whiteKingMoved;
     }
 
-    public void setBLACKKingMoved (boolean BLACKKingMoved ) {
-        this.BLACKKingMoved = BLACKKingMoved ;
+    public boolean isBlackKingMoved() {
+        return blackKingMoved;
+    }
+
+    public void setBlackKingMoved(boolean blackKingMoved) {
+        this.blackKingMoved = blackKingMoved;
     }
 }

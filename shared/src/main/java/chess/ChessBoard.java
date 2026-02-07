@@ -11,11 +11,11 @@ import java.util.Objects;
  */
 public class ChessBoard {
 
-    private final ChessPiece[][] GameBoard;
+    private final ChessPiece[][] gameBoard;
 
     public ChessBoard() {
 
-        GameBoard = new ChessPiece[8][8]; //创建8x8棋盘方块
+        gameBoard = new ChessPiece[8][8]; //创建8x8棋盘方块
     }
 
 
@@ -27,7 +27,7 @@ public class ChessBoard {
      */
     //添加棋子
     public void addPiece(ChessPosition position, ChessPiece piece) {
-        GameBoard[position.getRow() - 1][position.getColumn() - 1] = piece;
+        gameBoard[position.getRow() - 1][position.getColumn() - 1] = piece;
     }
     // -1是因为数组索引为0开始，而棋盘在1开始
 
@@ -40,7 +40,7 @@ public class ChessBoard {
      */
     //获取指定棋子
     public ChessPiece getPiece(ChessPosition position) {
-        return GameBoard[position.getRow() - 1][position.getColumn() - 1];
+        return gameBoard[position.getRow() - 1][position.getColumn() - 1];
     }
 
     /**
@@ -70,7 +70,7 @@ public class ChessBoard {
 
     public void setNullSpaces(int row) {
         for (int i = 0; i < 8; i++){
-            GameBoard[row][i] = null;
+            gameBoard[row][i] = null;
         }
     }
     //将NullRoll改为Nullspaces
@@ -105,8 +105,8 @@ public class ChessBoard {
     public void printBoard() {
         for (int temprow = 0; temprow < 8; temprow++){
             for (int tempcol = 0; tempcol < 8; tempcol++) {
-                if (GameBoard[temprow][tempcol] != null) {
-                    ChessPiece selectedPiece = GameBoard[temprow][tempcol];
+                if (gameBoard[temprow][tempcol] != null) {
+                    ChessPiece selectedPiece = gameBoard[temprow][tempcol];
                     printPiece(selectedPiece);
                 }
                 else {
@@ -153,12 +153,12 @@ public class ChessBoard {
         if (!(o instanceof ChessBoard that)) {
             return false;
         }
-        return Objects.deepEquals(GameBoard, that.GameBoard);
+        return Objects.deepEquals(gameBoard, that.gameBoard);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.deepHashCode(GameBoard);
+        return Arrays.deepHashCode(gameBoard);
     }
 }
 

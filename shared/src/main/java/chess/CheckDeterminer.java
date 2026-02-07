@@ -3,10 +3,10 @@ package chess;
 import java.util.Collection;
 
 public class CheckDeterminer {
-    private ChessBoard GameBoard;
+    private ChessBoard gameBoard;
 
     CheckDeterminer(ChessBoard GameBoard) {
-        this.GameBoard = GameBoard;
+        this.gameBoard = GameBoard;
     }
     public boolean isInCheck(ChessGame.TeamColor teamColor) {
 
@@ -25,7 +25,7 @@ public class CheckDeterminer {
         for (int i = 1; i <= 8; i++) {
             for (int j = 1; j <= 8; j++) {
                 checkPosition = new ChessPosition(i, j);
-                checkPiece = GameBoard.getPiece(checkPosition);
+                checkPiece = gameBoard.getPiece(checkPosition);
                 if (checkPiece != null && checkPiece.getTeamColor() == teamColor
                         && checkPiece.getPieceType() == ChessPiece.PieceType.KING) {
                     return checkPosition;
@@ -50,14 +50,14 @@ public class CheckDeterminer {
     private boolean straightChecker(ChessPosition kingPosition, int rowMod, int colMod) {
         ChessPosition checkPosition;
         ChessPiece checkPiece;
-        ChessGame.TeamColor kingColor = GameBoard.getPiece(kingPosition).getTeamColor();
+        ChessGame.TeamColor kingColor = gameBoard.getPiece(kingPosition).getTeamColor();
         int row = kingPosition.getRow() + rowMod;
         int col = kingPosition.getColumn() + colMod;
 
         while (row <= 8 && col <= 8 && row >0 && col > 0) {
             checkPosition = new ChessPosition(row, col);
-            if (GameBoard.getPiece(checkPosition) != null){
-                checkPiece = GameBoard.getPiece(checkPosition);
+            if (gameBoard.getPiece(checkPosition) != null){
+                checkPiece = gameBoard.getPiece(checkPosition);
                 if (checkPiece.getTeamColor() != kingColor) {
                     return targetingKing(kingPosition, checkPiece, checkPosition);
                 }
@@ -69,7 +69,7 @@ public class CheckDeterminer {
     }
     private boolean targetingKing(ChessPosition kingPosition, ChessPiece checkPiece, ChessPosition checkPosition) {
         // Create a movelist for the selected chess piece.
-        Collection<ChessMove> targetMoves = checkPiece.pieceMoves(GameBoard, checkPosition);
+        Collection<ChessMove> targetMoves = checkPiece.pieceMoves(gameBoard, checkPosition);
 
         // Create two example moves that target the king's position. One for generic pieces, one for pawn promotion moves.
         ChessMove dangerMove = new ChessMove(checkPosition, kingPosition);
@@ -81,7 +81,7 @@ public class CheckDeterminer {
     private boolean checkKingKnights(ChessPosition kingPosition) {
         int kingRow = kingPosition.getRow();
         int kingCol = kingPosition.getColumn();
-        ChessGame.TeamColor kingColor = GameBoard.getPiece(kingPosition).getTeamColor();
+        ChessGame.TeamColor kingColor = gameBoard.getPiece(kingPosition).getTeamColor();
         ChessPosition checkPosition;
 
         for (int row = kingRow - 2; row <= kingRow + 2; row ++) {
@@ -98,7 +98,7 @@ public class CheckDeterminer {
         if (Math.abs(kingRow - row) + Math.abs(kingCol - col) == 3 &&
                 row <= 8 && col <= 8 && row >0 && col > 0) {
             checkPosition = new ChessPosition(row, col);
-            ChessPiece checkPiece = GameBoard.getPiece(checkPosition);
+            ChessPiece checkPiece = gameBoard.getPiece(checkPosition);
             if (checkPiece != null && checkPiece.getPieceType() == ChessPiece.PieceType.KNIGHT
                     && checkPiece.getTeamColor() != kingColor) {
                 return true;
@@ -108,6 +108,6 @@ public class CheckDeterminer {
     }
 
     public void setGameBoard(ChessBoard GameBoard) {
-        this.GameBoard = GameBoard;
+        this.gameBoard = GameBoard;
     }
 }
