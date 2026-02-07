@@ -19,7 +19,7 @@ public class ChessPiece {
     private PieceMoves selectedPiece;
     private HashSet<PieceMoves> moveList;
 
-    public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
+    public ChessPiece(ChessGame.TeamColor pieceColor, PieceType type) {
         this.pieceColor = pieceColor;
         this.type = type;
     }
