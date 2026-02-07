@@ -1,4 +1,4 @@
-package chess.piecemoves;
+package chess;
 
 public class CastlingHistory {
     boolean WHITEKingRookMoved;
