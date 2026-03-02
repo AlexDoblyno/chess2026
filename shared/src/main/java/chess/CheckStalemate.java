@@ -5,10 +5,10 @@ import java.util.HashSet;
 
 public class CheckStalemate {
 
-    private ChessBoard gameBoard;
+    private ChessBoard GameBoard;
 
     CheckStalemate (ChessBoard GameBoard) {
-        this.gameBoard = GameBoard;
+        this.GameBoard = GameBoard;
     }
 
     public boolean isInStalemate(boolean isInCheck, Collection<ChessMove> teamMoves) {
@@ -16,11 +16,11 @@ public class CheckStalemate {
             if (teamMoves.isEmpty()) {
                 return true;
             }
-            return garbageBoardState();
+            return GarbageBoardState();
         }
         return false;
     }
-    private boolean garbageBoardState() {
+    private boolean GarbageBoardState() {
         if (containsNoLimitMovers()) {
             return false;
         }
@@ -40,12 +40,10 @@ public class CheckStalemate {
     }
 
     private boolean pieceExtraction(Collection<ChessPosition> whitePieces, Collection<ChessPosition> blackPieces, int totalPieces) {
-        Collection<ChessPosition> whiteBishops = extractPieces(whitePieces, ChessPiece.PieceType.BISHOP);
-        Collection<ChessPosition> blackBishops = extractPieces(blackPieces, ChessPiece.PieceType.BISHOP);
-        whitePieces.removeAll(whiteBishops);
-        blackPieces.removeAll(blackBishops);
-
-
+        Collection<ChessPosition> WHITEBishops = extractPieces(whitePieces, ChessPiece.PieceType.BISHOP);
+        Collection<ChessPosition> BLACKBishops = extractPieces(blackPieces, ChessPiece.PieceType.BISHOP);
+        whitePieces.removeAll(WHITEBishops);
+        blackPieces.removeAll(BLACKBishops);
 
         Collection<ChessPosition> whiteKnights = extractPieces(whitePieces, ChessPiece.PieceType.KNIGHT);
         Collection<ChessPosition> blackKnights = extractPieces(blackPieces, ChessPiece.PieceType.KNIGHT);
@@ -54,30 +52,30 @@ public class CheckStalemate {
         // The remaining piece in whitePieces and blackPieces is the king.
 
         // board state: King vs King and Bishop OR King vs King and Knight
-        if (totalPieces == 3 && (whiteBishops.size() + blackBishops.size() +
+        if (totalPieces == 3 && (WHITEBishops.size() + BLACKBishops.size() +
                 whiteKnights.size() + blackKnights.size() == 1)) {
             return true;
         }
 
         // board state: King vs King and all bishops are on the same color
         else if (whiteKnights.isEmpty() && blackKnights.isEmpty()){
-            boolean blackBishopsSameColor = onSameColor(blackBishops);
-            boolean whiteBishopsSameColor = onSameColor(whiteBishops);
-            if (whiteBishops.isEmpty() && !blackBishops.isEmpty() && onSameColor(blackBishops)) {
+            boolean BLACKBishopsSameColor = onSameColor(BLACKBishops);
+            boolean WHITEBishopsSameColor = onSameColor(WHITEBishops);
+            if (WHITEBishops.isEmpty() && !BLACKBishops.isEmpty() && onSameColor(BLACKBishops)) {
                 return true;
             }
-            else if (blackBishops.isEmpty() && !whiteBishops.isEmpty() &&onSameColor(whiteBishops)) {
+            else if (BLACKBishops.isEmpty() && !WHITEBishops.isEmpty() &&onSameColor(WHITEBishops)) {
                 return true;
             }
             else {
-                return !blackBishops.isEmpty() && onSameColor(whiteBishops) && onSameColor(blackBishops);
+                return !BLACKBishops.isEmpty() && onSameColor(WHITEBishops) && onSameColor(BLACKBishops);
             }
         }
 
         // board state: King and two knights vs king
         else {
-            return (whiteKnights.size() == 2 && whiteBishops.isEmpty() && blackKnights.isEmpty() && blackBishops.isEmpty()) ||
-                    (blackKnights.size() == 2 && blackBishops.isEmpty() && whiteKnights.isEmpty() && whiteBishops.isEmpty());
+            return (whiteKnights.size() == 2 && WHITEBishops.isEmpty() && blackKnights.isEmpty() && BLACKBishops.isEmpty()) ||
+                    (blackKnights.size() == 2 && BLACKBishops.isEmpty() && whiteKnights.isEmpty() && WHITEBishops.isEmpty());
         }
     }
     private boolean onSameColor(Collection<ChessPosition> pieces) {
@@ -109,7 +107,7 @@ public class CheckStalemate {
         for (int row = 1; row <= 8; row++) {
             for (int col = 1; col <= 8; col++) {
                 checkPosition = new ChessPosition(row, col);
-                checkPiece = gameBoard.getPiece(checkPosition);
+                checkPiece = GameBoard.getPiece(checkPosition);
                 if (checkPiece != null) {
                     if (checkPiece.getPieceType() == ChessPiece.PieceType.PAWN ||
                             checkPiece.getPieceType() == ChessPiece.PieceType.QUEEN ||
@@ -124,7 +122,7 @@ public class CheckStalemate {
     private Collection<ChessPosition> extractPieces(Collection<ChessPosition> allPositions, ChessPiece.PieceType type) {
         Collection<ChessPosition> pieces = new HashSet<>();
         for (ChessPosition space : allPositions) {
-            if (gameBoard.getPiece(space).getPieceType() == type) {
+            if (GameBoard.getPiece(space).getPieceType() == type) {
                 pieces.add(space);
             }
         }
@@ -136,8 +134,8 @@ public class CheckStalemate {
         for (int row = 1; row <= 8; row++) {
             for (int col = 1; col <= 8; col++) {
                 checkPosition = new ChessPosition(row, col);
-                if (gameBoard.getPiece(checkPosition) != null &&
-                        gameBoard.getPiece(checkPosition).getTeamColor() == color) {
+                if (GameBoard.getPiece(checkPosition) != null &&
+                        GameBoard.getPiece(checkPosition).getTeamColor() == color) {
                     allPositions.add(checkPosition);
                 }
             }
@@ -146,6 +144,6 @@ public class CheckStalemate {
     }
 
     public void setGameBoard(ChessBoard GameBoard) {
-        this.gameBoard = GameBoard;
+        this.GameBoard = GameBoard;
     }
 }

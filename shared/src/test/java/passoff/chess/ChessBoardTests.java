@@ -14,11 +14,11 @@ import java.util.List;
 
 public class ChessBoardTests extends EqualsTestingUtility<ChessBoard> {
     public ChessBoardTests() {
-        super("ChessBoard", "boards");
+        super("chess.ChessBoard", "boards");
     }
 
     @Test
-    @DisplayName("Construct Empty ChessBoard")
+    @DisplayName("Construct Empty chess.ChessBoard")
     public void constructChessBoard() {
         ChessBoard board = new ChessBoard();
 
@@ -26,7 +26,7 @@ public class ChessBoardTests extends EqualsTestingUtility<ChessBoard> {
             for (int col = 1; col <= 8; col++) {
                 Assertions.assertNull(
                         board.getPiece(new ChessPosition(row, col)),
-                        "Immediately upon construction, a ChessBoard should be empty."
+                        "Immediately upon construction, a chess.ChessBoard should be empty."
                 );
             }
         }

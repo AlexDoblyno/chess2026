@@ -15,8 +15,8 @@ public abstract class PieceMovesFar extends PieceMoves {
      */
     protected void checkLine(int rowDirection, int colDirection) {
         boolean keepChecking = true;
-        int row = startPosition.getRow() + rowDirection;
-        int col = startPosition.getColumn() + colDirection;
+        int row = StartPosition.getRow() + rowDirection;
+        int col = StartPosition.getColumn() + colDirection;
         ChessPosition checkPosition;
         while (keepChecking) {
             if (rowDirection != 0 || colDirection != 0) {
