@@ -40,7 +40,7 @@ public class ChessBoard {
      */
     //获取指定棋子
     public ChessPiece getPiece(ChessPosition position) {
-        return GameBoard[position.getRow() - 1][position.getColumn() - 1];
+        return GameBoard[position.getRow()-1][position.getColumn()-1];
     }
 
     /**

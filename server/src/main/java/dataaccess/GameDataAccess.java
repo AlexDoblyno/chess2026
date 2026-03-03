@@ -10,18 +10,18 @@ public interface GameDataAccess {
     /**
      * GameData methods
      */
-    public Collection<GameData> getGameList();
+    Collection<GameData> getGameList() throws ServerException;
 
-    public GameData getGameByName(String gameName);
+    GameData getGameByName(String gameName) throws ServerException;
 
-    public GameData getGameById(int gameId);
+    GameData getGameByID(int gameID) throws ServerException;
 
-    public void createGame(GameData gameData);
+    void createGame(GameData gameData) throws ServerException;
 
-    public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID);
+    void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
 
     /**
      * Mass deletion methods
      */
-    public void clearGames();
+    void clearGames() throws ServerException;
 }

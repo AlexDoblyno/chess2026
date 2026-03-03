@@ -1,5 +1,9 @@
 package server;
 
+import dataaccess.DataAccessException;
+import dataaccess.SqlAuthDataAccess;
+import dataaccess.SqlGameDataAccess;
+import dataaccess.SqlUserDataAccess;
 import models.AuthTokenData;
 import models.GameData;
 import models.MessageResponse;
@@ -16,12 +20,12 @@ import java.util.Map;
 public class Server {
 
     // Create a single Gson object for all Gson operations
-
     private final Gson gson = new Gson();
     private final Service service;
 
     public Server() {
         service = new Service();
+        initializeDatabase();
     }
 
     public int run(int desiredPort) {
@@ -47,6 +51,7 @@ public class Server {
         return Spark.port();
     }
 
+
     /**
      * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
      * into the server's database.
@@ -55,12 +60,10 @@ public class Server {
      * @return the AuthTokenData object, serialized as a JSON object.
      * @throws ServerException
      */
-
-    private String registerUser(Request request, Response response) throws ServerException {
+    private String registerUser(Request request, Response response) {
         try {
             // Store the user data from the request
             UserData submittedUser = new Gson().fromJson(request.body(), UserData.class);
-
 
             // Trim the username
             String trimmedUsername = submittedUser.username().trim();
@@ -68,21 +71,36 @@ public class Server {
 
             // Verify inputs
             if (!validateInput(user.username()) || !validateInput(user.password()) || !validateEmail(user.email())) {
-                throw new ServerException("bad request", 400);
+                throw new ServerException("Error: bad request", 400);
             }
 
             // Register user data
-            else {
-                AuthTokenData authToken = service.register(user);
-
-                response.status(200);
-                return gson.toJson(authToken);
+            AuthTokenData authToken = null;
+            try {
+                authToken = service.register(user);
+            } catch (ServerException e) {
+                response.status(e.getStatusCode());
+                    throw new ServerException("error| "+e.getMessage(),e.getStatusCode());
             }
+            response.status(200);
+            return gson.toJson(authToken);
 
-            // Catch exception from bad request
         } catch (JsonSyntaxException e) {
-            throw new ServerException("bad request", 400);
+            // Handle invalid JSON structure
+            e.printStackTrace(); // 打印日志
+            return createErrorResponse(response, "Error! bad request", 400);
+
+        } catch (ServerException e) {
+            // Handle ServerException and create a meaningful response
+            e.printStackTrace();
+            return createErrorResponse(response, "error| "+e.getMessage(), e.getStatusCode());
         }
+    }
+
+    // 添加一个通用的方法来创建错误响应
+    private String createErrorResponse(Response response, String errorMessage, int statusCode) {
+        response.status(statusCode);
+        return gson.toJson(new MessageResponse(errorMessage)); // 构建错误信息的 JSON 响应
     }
 
     /**
@@ -100,13 +118,14 @@ public class Server {
 
         // Store the credentials from the request
         UserLoginCredentials userLogin = new Gson().fromJson(request.body(), UserLoginCredentials.class);
+        if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
+            throw new ServerException("bad request", 400);
+        }
+
         String username = userLogin.username;
         String password = userLogin.password;
 
         try {
-            if (username == null || password == null) {
-                throw new ServerException("bad request", 400); // Bad Request for missing fields
-            }
             AuthTokenData authToken = service.login(username, password);
             response.status(200);
             return gson.toJson(authToken);
@@ -115,8 +134,8 @@ public class Server {
             response.body(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
             return response.body();
         }
-    }
 
+    }
 
     /**
      * logoutUser will attempt to log out the user given the session's authtoken.
@@ -127,7 +146,13 @@ public class Server {
     private Object logoutUser(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
 
-        service.logOut(authToken);
+        try{
+            service.logOut(authToken);
+        } catch (ServerException e) {
+            e.printStackTrace();
+            response.status(e.getStatusCode());
+            return createErrorResponse(response, "error| "+ e.getMessage(), e.getStatusCode());
+        }
         response.status(200);
         return "";
     }
@@ -137,12 +162,16 @@ public class Server {
      * @param request contains the current user's authToken
      * @param response is the resulting response JSON object along with the serialized return information
      * @return the list of games in the database
-     * @throws ServerException 401  这个是用来凑字数的
+     * @throws ServerException 401
      */
     private String listGame(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
-
-        Collection<GameData> gameList = service.listGames(authToken);
+        Collection<GameData> gameList = null;
+        try {
+            gameList = service.listGames(authToken);
+        } catch (ServerException e) {
+            throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
+        }
         response.status(200);
         Map<String, Object> jsonMap = Map.of("games", gameList);
         return gson.toJson(jsonMap);
@@ -160,18 +189,18 @@ public class Server {
         String authToken = request.headers("authorization");
         String gameName = requestBody.get("gameName");
 
-        // 检查 gameName 是否为 null 或空字符串
-        if (gameName == null || gameName.trim().isEmpty()) {
-            response.status(400); // 状态码为 400
-            response.body(gson.toJson(new MessageResponse("Error: Bad request - gameName is required"))); // 确保包含 "Error"
-            return response.body();
+        int gameID;
+        try{
+            gameID = service.createGame(authToken, gameName);
+        }catch (ServerException e){
+            response.status(e.getStatusCode());
+            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
         }
-
-        int gameID = service.createGame(authToken, gameName);
         response.status(200);
         Map<String, Integer> jsonMap = Map.of("gameID", gameID);
         return gson.toJson(jsonMap);
     }
+
     /**
      * joinGame will add a user to an existing GameData object in the database.
      * @param request contains the authData, playerColor and gameID
@@ -181,7 +210,7 @@ public class Server {
         Map<String, Object> requestBody = gson.fromJson(request.body(), Map.class);
         ChessGame.TeamColor teamColor;
         String authData;
-
+//commit
         // Assign variables for our Service function call
         authData = request.headers("authorization");
 
@@ -190,6 +219,8 @@ public class Server {
                 teamColor = ChessGame.TeamColor.WHITE;
             } else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("BLACK")){
                 teamColor = ChessGame.TeamColor.BLACK;
+            }else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("OBSERVE")){
+                teamColor = ChessGame.TeamColor.OBSERVE;
             }
             else {
                 throw new ServerException("bad request", 400);
@@ -212,7 +243,7 @@ public class Server {
      * @param response contains nothing but the success code, exception info, and my feelings of resignation at
      *                 having to make these large comment headers for every function (it's good practice)
      */
-    private Object clearDatabase(Request request, Response response) {
+    private Object clearDatabase(Request request, Response response) throws ServerException {
         service.clearApp();
         response.status(200);
         return "";
@@ -231,7 +262,6 @@ public class Server {
 
         if (e instanceof ServerException serverException) {
             statusCode = ((ServerException) e).getStatusCode();
-            System.out.println(statusCode);
             errorMessage = "Error: " + e.getMessage();
             messageResponse = new MessageResponse(errorMessage);
         }
@@ -267,11 +297,26 @@ public class Server {
 //        final String EMAIL_REGEX = "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
 //        final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
 
-        if (email != null) {
-//            return EMAIL_PATTERN.matcher(email).matches();
-            return true;
+        //            return EMAIL_PATTERN.matcher(email).matches();
+        return email != null;
+    }
+
+    private void initializeDatabase() {
+        try {
+            // User data initialized first
+            SqlUserDataAccess userDataAccess = new SqlUserDataAccess();
+            userDataAccess.configureDatabase();
+
+            SqlGameDataAccess gameDataAccess = new SqlGameDataAccess();
+            SqlAuthDataAccess authDataAccess = new SqlAuthDataAccess();
+
+            authDataAccess.configureDatabase();
+            gameDataAccess.configureDatabase();
+        } catch (dataaccess.ServerException e) {
+            throw new RuntimeException("Database initialization failed: " + e.getMessage());
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
         }
-        return false;
     }
 
     public void stop() {

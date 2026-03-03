@@ -1,5 +1,6 @@
 package service;
 
+import dataaccess.DataAccessException;
 import models.AuthTokenData;
 import models.GameData;
 import models.UserData;
@@ -16,7 +17,7 @@ class ServiceUnitTests {
     private Service service;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws dataaccess.ServerException, DataAccessException {
         service = new Service();
     }
 

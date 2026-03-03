@@ -23,10 +23,6 @@ public class MemoryUserDataAccess implements UserDataAccess {
         return null;
     }
 
-    public void removeUserData(String username) {
-        userDatabase.removeIf(user -> user.username().equals(username));
-    }
-
     public void addUserData(UserData userData) {
         userDatabase.add(userData);
     }
