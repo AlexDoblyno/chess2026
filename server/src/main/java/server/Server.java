@@ -137,7 +137,7 @@ public class Server {
      * @param request contains the current user's authToken
      * @param response is the resulting response JSON object along with the serialized return information
      * @return the list of games in the database
-     * @throws ServerException 401
+     * @throws ServerException 401  这个是用来凑字数的
      */
     private String listGame(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
