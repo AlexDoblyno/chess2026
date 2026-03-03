@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class Server {
 
-    // Create a single Gson object for all Gson operations
+    // Create a single Gson object for all Gson operati
     private final Gson gson = new Gson();
     private final Service service;
 
