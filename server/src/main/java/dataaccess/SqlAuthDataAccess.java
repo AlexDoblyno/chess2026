@@ -71,8 +71,8 @@ public class SqlAuthDataAccess implements AuthDataAccess, SqlAccess {
                 }
             }
         } catch (SQLException | ServerException | DataAccessException e) {
-
-            throw new ServerException("Error: Authdata get failed: " + e.getMessage());
+            return null;
+//            throw new ServerException("Authdata get failed: " + e.getMessage());
         }
     }
 
@@ -124,7 +124,7 @@ public class SqlAuthDataAccess implements AuthDataAccess, SqlAccess {
         } catch (SQLException e) {
             throw new ServerException("Database creation failed: " + e.getMessage());
         } catch (DataAccessException e) {
-            throw new ServerException("Database creation failed: " + e.getMessage());
+            throw new RuntimeException(e);
         }
 
     }

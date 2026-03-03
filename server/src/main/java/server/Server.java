@@ -60,7 +60,7 @@ public class Server {
      * @return the AuthTokenData object, serialized as a JSON object.
      * @throws ServerException
      */
-    private String registerUser(Request request, Response response) {
+    private String registerUser(Request request, Response response) throws ServerException {
         try {
             // Store the user data from the request
             UserData submittedUser = new Gson().fromJson(request.body(), UserData.class);
@@ -71,36 +71,21 @@ public class Server {
 
             // Verify inputs
             if (!validateInput(user.username()) || !validateInput(user.password()) || !validateEmail(user.email())) {
-                throw new ServerException("Error: bad request", 400);
+                throw new ServerException("bad request", 400);
             }
 
             // Register user data
-            AuthTokenData authToken = null;
-            try {
-                authToken = service.register(user);
-            } catch (ServerException e) {
-                response.status(e.getStatusCode());
-                    throw new ServerException("error| "+e.getMessage(),e.getStatusCode());
+            else {
+                AuthTokenData authToken = service.register(user);
+
+                response.status(200);
+                return gson.toJson(authToken);
             }
-            response.status(200);
-            return gson.toJson(authToken);
 
+            // Catch exception from bad request
         } catch (JsonSyntaxException e) {
-            // Handle invalid JSON structure
-            e.printStackTrace(); // 打印日志
-            return createErrorResponse(response, "Error! bad request", 400);
-
-        } catch (ServerException e) {
-            // Handle ServerException and create a meaningful response
-            e.printStackTrace();
-            return createErrorResponse(response, "error| "+e.getMessage(), e.getStatusCode());
+            throw new ServerException("bad request", 400);
         }
-    }
-
-    // 添加一个通用的方法来创建错误响应
-    private String createErrorResponse(Response response, String errorMessage, int statusCode) {
-        response.status(statusCode);
-        return gson.toJson(new MessageResponse(errorMessage)); // 构建错误信息的 JSON 响应
     }
 
     /**
@@ -118,10 +103,6 @@ public class Server {
 
         // Store the credentials from the request
         UserLoginCredentials userLogin = new Gson().fromJson(request.body(), UserLoginCredentials.class);
-        if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
-            throw new ServerException("bad request", 400);
-        }
-
         String username = userLogin.username;
         String password = userLogin.password;
 
@@ -146,13 +127,7 @@ public class Server {
     private Object logoutUser(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
 
-        try{
-            service.logOut(authToken);
-        } catch (ServerException e) {
-            e.printStackTrace();
-            response.status(e.getStatusCode());
-            return createErrorResponse(response, "error| "+ e.getMessage(), e.getStatusCode());
-        }
+        service.logOut(authToken);
         response.status(200);
         return "";
     }
@@ -166,12 +141,8 @@ public class Server {
      */
     private String listGame(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
-        Collection<GameData> gameList = null;
-        try {
-            gameList = service.listGames(authToken);
-        } catch (ServerException e) {
-            throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
-        }
+
+        Collection<GameData> gameList = service.listGames(authToken);
         response.status(200);
         Map<String, Object> jsonMap = Map.of("games", gameList);
         return gson.toJson(jsonMap);
@@ -189,13 +160,7 @@ public class Server {
         String authToken = request.headers("authorization");
         String gameName = requestBody.get("gameName");
 
-        int gameID;
-        try{
-            gameID = service.createGame(authToken, gameName);
-        }catch (ServerException e){
-            response.status(e.getStatusCode());
-            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
-        }
+        int gameID = service.createGame(authToken, gameName);
         response.status(200);
         Map<String, Integer> jsonMap = Map.of("gameID", gameID);
         return gson.toJson(jsonMap);
@@ -210,7 +175,7 @@ public class Server {
         Map<String, Object> requestBody = gson.fromJson(request.body(), Map.class);
         ChessGame.TeamColor teamColor;
         String authData;
-//commit
+
         // Assign variables for our Service function call
         authData = request.headers("authorization");
 
@@ -219,8 +184,6 @@ public class Server {
                 teamColor = ChessGame.TeamColor.WHITE;
             } else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("BLACK")){
                 teamColor = ChessGame.TeamColor.BLACK;
-            }else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("OBSERVE")){
-                teamColor = ChessGame.TeamColor.OBSERVE;
             }
             else {
                 throw new ServerException("bad request", 400);

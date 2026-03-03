@@ -40,9 +40,10 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
                 gameList.add(deserializeGameData(response));
             }
         } catch (SQLException e) {
-            throw new ServerException("GameData list get failed: " + e.getMessage());
+            return null;
+//            throw new ServerException("GameData list get failed: " + e.getMessage());
         } catch (DataAccessException e) {
-            throw new ServerException("GameData list get failed: " + e.getMessage());
+            throw new RuntimeException(e);
         }
         return gameList;
     }
@@ -134,7 +135,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
         } catch (SQLException e) {
             throw new ServerException("Join game failed: " + e.getMessage());
         } catch (DataAccessException e) {
-            throw new ServerException("Join game failed: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -146,9 +147,10 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
             try (var preparedStatement = conn.prepareStatement(clear)) {
                 preparedStatement.executeUpdate();
             }
-        } catch (SQLException | DataAccessException e) {
+        } catch (SQLException e) {
             throw new ServerException("GameData clear failed: " + e.getMessage());
-
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -164,7 +166,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
         } catch (SQLException e) {
             throw new ServerException("Update failed: " + e.getMessage());
         } catch (DataAccessException e) {
-            throw new ServerException("Update failed: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -221,7 +223,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
         } catch (SQLException e) {
             throw new ServerException(e.getMessage());
         } catch (DataAccessException e) {
-            throw new ServerException(e.getMessage());
+            throw new RuntimeException(e);
         }
 
     }

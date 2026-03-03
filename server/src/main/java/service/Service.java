@@ -36,7 +36,7 @@ public class Service {
     public AuthTokenData register(UserData userData) throws ServerException {
         // Input validation on the service level
         if (userData == null || userData.username() == null || userData.password() == null || userData.email() == null) {
-            throw new ServerException("Error: bad request", 400);
+            throw new ServerException("bad request", 400);
         }
         try {
             if (userDataAccess.getUserData(userData.username()) == null) {
@@ -49,19 +49,15 @@ public class Service {
                 authDataAccess.addAuthData(authTokenData);
 
                 return authTokenData;
-            }else {
-                throw new ServerException("Error: already taken", 403);
+            }
+            else {
+                throw new ServerException("already taken", 403);
             }
         } catch (dataaccess.ServerException e) {
             if (e.getMessage().contains("unauthorized")) {
-                throw new ServerException("Error: "+e.getMessage(), 401);
-            }else if(e.getMessage().contains("taken"))
-            {
-                throw new ServerException("Error: already taken", 403);
+                throw new ServerException(e.getMessage(), 401);
             }
-            else{
-                throw new ServerException("Error: "+e.getMessage(), 500);
-            }
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -103,17 +99,14 @@ public class Service {
         try {
             AuthTokenData authData = authDataAccess.getAuthData(authToken);
             if (authData == null) {
-                throw new ServerException("Error! Auth Token not found", 401);
+                throw new ServerException("unauthorized", 401);
             }
             authDataAccess.removeAuthData(authData);
         } catch (ServerException | dataaccess.ServerException e) {
             if (e.getMessage().contains("unauthorized")) {
-                throw new ServerException("Error: "+e.getMessage(), 401);
-            }else if(e.getMessage().contains("not found")){
-                throw new ServerException("Error! Auth Token not found", 401);
-            }else {
-                throw new ServerException("error| "+"Error: " + e.getMessage(), 500);
+                throw new ServerException(e.getMessage(), 401);
             }
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -131,11 +124,7 @@ public class Service {
             }
             throw new ServerException("unauthorized", 401);
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("unauthorized", 401);
-            }else {
-                throw new ServerException(e.getMessage(), 500);
-            }
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -147,9 +136,6 @@ public class Service {
      * @throws ServerException
      */
     public int createGame(String authToken, String gameName) throws ServerException {
-        if(gameName == null || gameName.isBlank()) {
-            throw new ServerException("Error: bad request", 400);
-        }
         try {
             AuthTokenData authData = authDataAccess.getAuthData(authToken);
             if (authData != null) {
@@ -165,13 +151,9 @@ public class Service {
                 }
                 throw new ServerException("already taken", 403);
             }
-            throw new ServerException("Error: Unauthorized", 401);
+            throw new ServerException("unauthorized", 401);
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("Error: Unauthorized", 401);
-            }else {
-                throw new ServerException("Error: " + e.getMessage(), 500);
-            }
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -207,11 +189,7 @@ public class Service {
                 gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameID);
             }
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("unauthorized", 401);
-            }else {
-                throw new ServerException(e.getMessage(), 500);
-            }
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -224,7 +202,7 @@ public class Service {
             userDataAccess.clearUsers();
             authDataAccess.clearAuthTokens();
         } catch (dataaccess.ServerException e) {
-            throw new ServerException("error| "+e.getMessage(), 500);
+            throw new ServerException(e.getMessage(), 500);
         }
     }
 
@@ -245,11 +223,7 @@ public class Service {
                 return generateAuthToken();
             }
         } catch (dataaccess.ServerException e) {
-            if (e.getMessage().contains("not found")) {
-                return authToken;
-            } else {
-                new ServerException(e.getMessage(), 500);
-            }
+            throw new ServerException(e.getMessage(), 500);
         }
         return authToken;
     }
