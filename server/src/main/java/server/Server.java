@@ -1,4 +1,8 @@
+package server;
 
+import models.AuthTokenData;
+import models.GameData;
+import models.MessageResponse;
 import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
