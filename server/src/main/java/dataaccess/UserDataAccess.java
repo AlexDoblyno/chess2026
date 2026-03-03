@@ -1,11 +1,6 @@
 package dataaccess;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
-import chess.ChessGame;
-
-import java.util.Collection;
+import models.UserData;
 
 public interface UserDataAccess {
     /**

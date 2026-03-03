@@ -1,9 +1,9 @@
 package server;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.MessageResponse;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.MessageResponse;
+import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
 import service.Service;
@@ -12,7 +12,6 @@ import com.google.gson.Gson;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class Server {
 

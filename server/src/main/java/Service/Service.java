@@ -1,8 +1,8 @@
 package service;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.UserData;
 import chess.ChessGame;
 import dataaccess.*;
 import server.ServerException;
@@ -105,10 +105,10 @@ public class Service {
         if (authData != null) {
             if (gameDataAccess.getGameByName(gameName) == null) {
                 ChessGame newGame = new ChessGame();
-                int gameID = generateGameID();
-                GameData newGameData = new GameData(gameID, null, null, gameName, newGame);
+                int gameId = generateGameID();
+                GameData newGameData = new GameData(gameId, null, null, gameName, newGame);
                 gameDataAccess.createGame(newGameData);
-                return gameID;
+                return gameId;
             }
             throw new ServerException("already taken", 403);
         }
@@ -119,24 +119,24 @@ public class Service {
      * joinGame will assign the given user to the selected team color of the chosen game.
      * @param givenAuthData is the user's authData. contains username and authToken.
      * @param teamColor is the team we will assign the player to.
-     * @param gameID is the ID of the game we will try to join.
+     * @param gameId is the Id of the game we will try to join.
      */
-    public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ServerException {
+    public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameId) throws ServerException {
         // Check for exceptions
         AuthTokenData auth = authDataAccess.getAuthData(givenAuthData);
         if (auth == null) throw new ServerException("unauthorized", 401);
 
-        GameData gameData = gameDataAccess.getGameByID(gameID);
+        GameData gameData = gameDataAccess.getGameById(gameId);
         if (gameData == null) throw new ServerException("bad request", 400);
 
         // Set the user to the specified team
         if(teamColor == ChessGame.TeamColor.WHITE){
             if (gameData.whiteUsername() != null) throw new ServerException("already taken", 403);
-            gameDataAccess.joinGame(auth, ChessGame.TeamColor.WHITE, gameID);
+            gameDataAccess.joinGame(auth, ChessGame.TeamColor.WHITE, gameId);
         }
         else if (teamColor == ChessGame.TeamColor.BLACK){
             if (gameData.blackUsername() != null) throw new ServerException("already taken", 403);
-            gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameID);
+            gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameId);
         }
     }
 
@@ -171,13 +171,13 @@ public class Service {
         byte[] randomBytes = new byte[4];
         secureRandom.nextBytes(randomBytes);
         // Turn bytes into integer
-        int gameID = Math.abs(java.nio.ByteBuffer.wrap(randomBytes).getInt());
+        int gameId = Math.abs(java.nio.ByteBuffer.wrap(randomBytes).getInt());
 
         // Verify uniqueness
-        while (gameDataAccess.getGameByID(gameID) != null) {
+        while (gameDataAccess.getGameById(gameId) != null) {
             secureRandom.nextBytes(randomBytes);
-            gameID = java.nio.ByteBuffer.wrap(randomBytes).getInt();
+            gameId = java.nio.ByteBuffer.wrap(randomBytes).getInt();
         }
-        return gameID;
+        return gameId;
     }
 }

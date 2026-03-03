@@ -1,7 +1,7 @@
 package dataaccess;
 
-import Models.AuthTokenData;
-import Models.GameData;
+import models.AuthTokenData;
+import models.GameData;
 import chess.ChessGame;
 
 import java.util.Collection;
@@ -14,7 +14,7 @@ public interface GameDataAccess {
 
     public GameData getGameByName(String gameName);
 
-    public GameData getGameByID(int gameID);
+    public GameData getGameById(int gameId);
 
     public void createGame(GameData gameData);
 

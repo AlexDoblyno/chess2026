@@ -1,9 +1,6 @@
 package dataaccess;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
-import chess.ChessGame;
+import models.UserData;
 
 import java.util.Collection;
 import java.util.HashSet;
