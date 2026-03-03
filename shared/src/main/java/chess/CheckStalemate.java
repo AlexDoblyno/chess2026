@@ -2,7 +2,7 @@ package chess;
 
 import java.util.Collection;
 import java.util.HashSet;
-//回头还得把项目名称改一改
+
 public class CheckStalemate {
 
     private ChessBoard GameBoard;
@@ -16,11 +16,12 @@ public class CheckStalemate {
             if (teamMoves.isEmpty()) {
                 return true;
             }
-            return GarbageBoardState();
+            return garbageBoardState();
         }
         return false;
     }
-    private boolean GarbageBoardState() {
+
+    private boolean garbageBoardState() {
         if (containsNoLimitMovers()) {
             return false;
         }
@@ -28,7 +29,7 @@ public class CheckStalemate {
             Collection<ChessPosition> whitePieces = getTeamPieces(ChessGame.TeamColor.WHITE);
             Collection<ChessPosition> blackPieces = getTeamPieces(ChessGame.TeamColor.BLACK);
 
-            //计算total piece
+            // Calculate total pieces
             int totalPieces = whitePieces.size() + blackPieces.size();
             if (totalPieces == 2) {
                 return true;
@@ -57,7 +58,7 @@ public class CheckStalemate {
             return true;
         }
 
-        // board state: King vs King and all bishops are on the same color 王对王
+        // board state: King vs King and all bishops are on the same color
         else if (whiteKnights.isEmpty() && blackKnights.isEmpty()){
             boolean BLACKBishopsSameColor = onSameColor(BLACKBishops);
             boolean WHITEBishopsSameColor = onSameColor(WHITEBishops);

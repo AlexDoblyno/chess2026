@@ -1,5 +1,6 @@
 package service;
 
+import dataaccess.DataAccessException;
 import models.AuthTokenData;
 import models.GameData;
 import models.UserData;
@@ -16,13 +17,13 @@ class ServiceUnitTests {
     private Service service;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws dataaccess.ServerException, DataAccessException {
         service = new Service();
     }
 
     // **Test cases for register()**
     @Test
-    void register_positiveTest() throws ServerException {
+    void registerPositiveTest() throws ServerException {
         // 正向测试：注册一个新用户
         UserData user = new UserData("validUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user);
@@ -31,7 +32,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void register_negativeTest() {
+    void registerNegativeTest() {
         // 负向测试：重复注册相同用户名
         UserData user = new UserData("duplicateUser", "password123", "sliu61@byu.edu");
         assertDoesNotThrow(() -> service.register(user));
@@ -43,7 +44,7 @@ class ServiceUnitTests {
 
     // **Test cases for login()**
     @Test
-    void login_positiveTest() throws ServerException {
+    void loginPositiveTest() throws ServerException {
         // 正向测试：登录已注册用户
         UserData user = new UserData("validLogin", "password123", "sliu61@byu.edu");
         service.register(user);
@@ -54,7 +55,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void login_negativeTest() throws ServerException {
+    void loginNegativeTest() throws ServerException {
         // 负向测试：登录时使用错误的密码
         UserData user = new UserData("loginUser", "password123", "sliu61@byu.edu");
         service.register(user); // 确定用户注册成功
@@ -66,7 +67,7 @@ class ServiceUnitTests {
 
     // **Test cases for logOut()**
     @Test
-    void logOut_positiveTest() throws ServerException {
+    void logoutPositiveTest() throws ServerException {
         // 正向测试：成功注销登录
         UserData user = new UserData("logOutUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user);
@@ -75,7 +76,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void logOut_negativeTest() {
+    void logoutNegativeTest() {
         // 负向测试：注销无效 token
         ServerException exception = assertThrows(ServerException.class, () -> service.logOut("invalidToken"));
         assertEquals(401, exception.getStatusCode());
@@ -83,7 +84,7 @@ class ServiceUnitTests {
 
     // **Test cases for listGames()**
     @Test
-    void listGames_positiveTest() throws ServerException {
+    void listGamesPositiveTest() throws ServerException {
         // 正向测试：列出已创建的游戏
         UserData user = new UserData("listGamesUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user);
@@ -94,7 +95,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void listGames_negativeTest() {
+    void listGamesNegativeTest() {
         // 负向测试：列出游戏时使用无效 token
         ServerException exception = assertThrows(ServerException.class, () -> service.listGames("invalidToken"));
         assertEquals(401, exception.getStatusCode());
@@ -102,7 +103,7 @@ class ServiceUnitTests {
 
     // **Test cases for createGame()**
     @Test
-    void createGame_positiveTest() throws ServerException {
+    void createGamePositiveTest() throws ServerException {
         // 正向测试：成功创建一个新游戏
         UserData user = new UserData("createGameUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user);
@@ -112,7 +113,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void createGame_negativeTest() throws ServerException {
+    void createGameNegativeTest() throws ServerException {
         // 注册用户并获取有效的 AuthToken
         UserData user = new UserData("negativeCreateGameUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user); // 假设 register 已正确抛出异常或成功返回
@@ -128,7 +129,7 @@ class ServiceUnitTests {
     }
     // **Test cases for clearApp()**
     @Test
-    void clearApp_positiveTest() throws ServerException {
+    void clearAppPositiveTest() throws ServerException {
         // 正向测试：清空数据库
         UserData user = new UserData("clearAppUser", "password123", "sliu61@byu.edu");
         AuthTokenData authToken = service.register(user);
@@ -142,7 +143,7 @@ class ServiceUnitTests {
     }
 
     @Test
-    void clearApp_negativeTest() throws ServerException {
+    void clearAppNegativeTest() throws ServerException {
         // 负向测试：清空已清空的数据库
         service.clearApp(); // 确保数据库是空的
         assertDoesNotThrow(() -> service.clearApp()); // 再次调用也应该不抛出异常
