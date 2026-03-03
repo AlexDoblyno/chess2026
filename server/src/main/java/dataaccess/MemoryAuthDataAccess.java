@@ -1,6 +1,7 @@
 package dataaccess;
 
-import models.AuthTokenData;
+import Models.AuthTokenData;
+import Models.UserData;
 
 import java.util.Collection;
 import java.util.HashSet;

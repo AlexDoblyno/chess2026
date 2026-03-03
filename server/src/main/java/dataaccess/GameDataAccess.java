@@ -1,7 +1,7 @@
 package dataaccess;
 
-import models.AuthTokenData;
-import models.GameData;
+import Models.AuthTokenData;
+import Models.GameData;
 import chess.ChessGame;
 
 import java.util.Collection;
@@ -10,18 +10,18 @@ public interface GameDataAccess {
     /**
      * GameData methods
      */
-    Collection<GameData> getGameList() throws ServerException;
+    public Collection<GameData> getGameList();
 
-    GameData getGameByName(String gameName) throws ServerException;
+    public GameData getGameByName(String gameName);
 
-    GameData getGameByID(int gameID) throws ServerException;
+    public GameData getGameByID(int gameID);
 
-    void createGame(GameData gameData) throws ServerException;
+    public void createGame(GameData gameData);
 
-    void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
+    public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID);
 
     /**
      * Mass deletion methods
      */
-    void clearGames() throws ServerException;
+    public void clearGames();
 }

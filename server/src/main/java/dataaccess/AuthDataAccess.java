@@ -1,19 +1,19 @@
 package dataaccess;
 
-import models.AuthTokenData;
+import Models.AuthTokenData;
 
 public interface AuthDataAccess {
     /**
      * AuthData methods
      */
-    void addAuthData(AuthTokenData authData) throws ServerException, server.ServerException;
+    public void addAuthData (AuthTokenData authData);
 
-    void removeAuthData(AuthTokenData authData) throws ServerException, server.ServerException;
+    public void removeAuthData (AuthTokenData authData);
 
-    AuthTokenData getAuthData(String authData) throws ServerException, server.ServerException;
+    public AuthTokenData getAuthData (String authData);
 
     /**
      * Mass deletion methods
      */
-    void clearAuthTokens() throws ServerException;
+    public void clearAuthTokens();
 }

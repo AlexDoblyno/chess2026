@@ -1,8 +1,8 @@
 package service;
 
-import models.AuthTokenData;
-import models.GameData;
-import models.UserData;
+import Models.AuthTokenData;
+import Models.GameData;
+import Models.UserData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.ServerException;
