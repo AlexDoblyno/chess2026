@@ -2,7 +2,7 @@ package chess;
 
 import java.util.Collection;
 import java.util.HashSet;
-
+//回头还得把
 public class CheckStalemate {
 
     private ChessBoard GameBoard;
