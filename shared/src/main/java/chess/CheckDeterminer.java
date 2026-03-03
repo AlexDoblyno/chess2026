@@ -75,7 +75,7 @@ public class CheckDeterminer {
         ChessMove dangerMove = new ChessMove(checkPosition, kingPosition);
         ChessMove pawnDangerMove = new ChessMove(checkPosition, kingPosition, ChessPiece.PieceType.QUEEN);
 
-        // If the danger move is in the move list, the king is in check.
+        // If the danger move is in the move list, the king is in check。
         return targetMoves.contains(dangerMove) || targetMoves.contains(pawnDangerMove);
     }
     private boolean CheckKingKnights(ChessPosition kingPosition) {
