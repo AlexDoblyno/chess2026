@@ -1,11 +1,12 @@
 package dataaccess;
 
-import models.AuthTokenData;
-import models.GameData;
+import Models.AuthTokenData;
+import Models.GameData;
 import chess.ChessGame;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 public class MemoryGameDataAccess implements GameDataAccess {
     Collection<GameData> gameDatabase;
@@ -34,9 +35,9 @@ public class MemoryGameDataAccess implements GameDataAccess {
     }
 
     @Override
-    public GameData getGameById(int gameId) {
+    public GameData getGameByID(int gameID) {
         for (GameData game : gameDatabase) {
-            if (game.gameID() == (gameId)) {
+            if (game.gameID() == (gameID)) {
                 return game;
             }
         }
@@ -49,8 +50,8 @@ public class MemoryGameDataAccess implements GameDataAccess {
     }
 
     @Override
-    public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameId) {
-        GameData savedGame = getGameById(gameId);
+    public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) {
+        GameData savedGame = getGameByID(gameID);
         GameData updateGame = null;
 
         if (team == ChessGame.TeamColor.WHITE) {

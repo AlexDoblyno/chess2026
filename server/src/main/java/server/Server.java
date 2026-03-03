@@ -1,9 +1,9 @@
 package server;
 
-import models.AuthTokenData;
-import models.GameData;
-import models.MessageResponse;
-import models.UserData;
+import Models.AuthTokenData;
+import Models.GameData;
+import Models.MessageResponse;
+import Models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
 import service.Service;
@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class Server {
 
@@ -103,9 +104,6 @@ public class Server {
         String password = userLogin.password;
 
         try {
-            if (username == null || password == null) {
-                throw new ServerException("bad request", 400); // Bad Request for missing fields
-            }
             AuthTokenData authToken = service.login(username, password);
             response.status(200);
             return gson.toJson(authToken);
@@ -114,8 +112,8 @@ public class Server {
             response.body(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
             return response.body();
         }
-    }
 
+    }
 
     /**
      * logoutUser will attempt to log out the user given the session's authtoken.
@@ -159,18 +157,12 @@ public class Server {
         String authToken = request.headers("authorization");
         String gameName = requestBody.get("gameName");
 
-        // 检查 gameName 是否为 null 或空字符串
-        if (gameName == null || gameName.trim().isEmpty()) {
-            response.status(400); // 状态码为 400
-            response.body(gson.toJson(new MessageResponse("Error: Bad request - gameName is required"))); // 确保包含 "Error"
-            return response.body();
-        }
-
         int gameID = service.createGame(authToken, gameName);
         response.status(200);
         Map<String, Integer> jsonMap = Map.of("gameID", gameID);
         return gson.toJson(jsonMap);
     }
+
     /**
      * joinGame will add a user to an existing GameData object in the database.
      * @param request contains the authData, playerColor and gameID
