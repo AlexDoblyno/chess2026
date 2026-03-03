@@ -47,7 +47,12 @@ public class Server {
         return Spark.port();
     }
 
+    /**
+     * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
+     * into the server's database.
+     * @param request is the JSON request to register a user. Contains username, password, and email.
 
+     */
 
     private String registerUser(Request request, Response response) throws ServerException {
         try {
