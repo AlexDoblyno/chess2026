@@ -48,14 +48,7 @@ public class Server {
     }
 
 
-    /**
-     * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
-     * into the server's database.
-     * @param request is the JSON request to register a user. Contains username, password, and email.
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @return the AuthTokenData object, serialized as a JSON object.
-     * @throws ServerException
-     */
+
     private String registerUser(Request request, Response response) throws ServerException {
         try {
             // Store the user data from the request
