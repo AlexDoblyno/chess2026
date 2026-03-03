@@ -28,7 +28,7 @@ public class CheckStalemate {
             Collection<ChessPosition> whitePieces = getTeamPieces(ChessGame.TeamColor.WHITE);
             Collection<ChessPosition> blackPieces = getTeamPieces(ChessGame.TeamColor.BLACK);
 
-            // Calculate total pieces
+            //计算total piece
             int totalPieces = whitePieces.size() + blackPieces.size();
             if (totalPieces == 2) {
                 return true;
