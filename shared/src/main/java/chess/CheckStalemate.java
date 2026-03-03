@@ -2,7 +2,7 @@ package chess;
 
 import java.util.Collection;
 import java.util.HashSet;
-//回头还得把
+//回头还得把项目名称改一改
 public class CheckStalemate {
 
     private ChessBoard GameBoard;
