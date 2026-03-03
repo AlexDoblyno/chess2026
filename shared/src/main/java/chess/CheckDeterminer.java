@@ -82,7 +82,7 @@ public class CheckDeterminer {
         int kingRow = kingPosition.getRow();
         int kingCol = kingPosition.getColumn();
         ChessGame.TeamColor kingColor = GameBoard.getPiece(kingPosition).getTeamColor();
-        ChessPosition checkPosition; //*
+        ChessPosition checkPosition;
 
         for (int row = kingRow - 2; row <= kingRow + 2; row ++) {
             for (int col = kingCol - 2; col <= kingCol + 2; col++) {
