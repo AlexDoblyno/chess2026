@@ -68,7 +68,7 @@ public class CheckDeterminer {
         return false;
     }
     private boolean targetingKing(ChessPosition kingPosition, ChessPiece checkPiece, ChessPosition checkPosition) {
-        // Create a movelist for the selected chess piece.
+        // Create a movelist for the selected chess piece..
         Collection<ChessMove> targetMoves = checkPiece.pieceMoves(GameBoard, checkPosition);
 
         // Create two example moves that target the king's position. One for generic pieces, one for pawn promotion moves.
