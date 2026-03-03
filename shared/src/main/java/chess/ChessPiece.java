@@ -1,5 +1,5 @@
 package chess;
-//回头把项目名称改改
+//回头把项目名称改改 参见phase2提交上去的那个
 import chess.piecemoves.*;
 
 import java.util.Collection;
