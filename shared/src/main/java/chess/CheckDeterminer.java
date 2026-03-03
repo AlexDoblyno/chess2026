@@ -68,21 +68,21 @@ public class CheckDeterminer {
         return false;
     }
     private boolean targetingKing(ChessPosition kingPosition, ChessPiece checkPiece, ChessPosition checkPosition) {
-        // Create a movelist for the selected chess piece.
+        // Create a movelist for the selected chess piece..
         Collection<ChessMove> targetMoves = checkPiece.pieceMoves(GameBoard, checkPosition);
 
         // Create two example moves that target the king's position. One for generic pieces, one for pawn promotion moves.
         ChessMove dangerMove = new ChessMove(checkPosition, kingPosition);
         ChessMove pawnDangerMove = new ChessMove(checkPosition, kingPosition, ChessPiece.PieceType.QUEEN);
 
-        // If the danger move is in the move list, the king is in check.
+        // If the danger move is in the move list, the king is in check。
         return targetMoves.contains(dangerMove) || targetMoves.contains(pawnDangerMove);
     }
     private boolean CheckKingKnights(ChessPosition kingPosition) {
         int kingRow = kingPosition.getRow();
         int kingCol = kingPosition.getColumn();
         ChessGame.TeamColor kingColor = GameBoard.getPiece(kingPosition).getTeamColor();
-        ChessPosition checkPosition;
+        ChessPosition checkPosition; //*
 
         for (int row = kingRow - 2; row <= kingRow + 2; row ++) {
             for (int col = kingCol - 2; col <= kingCol + 2; col++) {

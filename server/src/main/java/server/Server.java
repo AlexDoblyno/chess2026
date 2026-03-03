@@ -16,6 +16,7 @@ import java.util.Map;
 public class Server {
 
     // Create a single Gson object for all Gson operations
+
     private final Gson gson = new Gson();
     private final Service service;
 
@@ -46,7 +47,6 @@ public class Server {
         return Spark.port();
     }
 
-
     /**
      * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
      * into the server's database.
@@ -55,6 +55,7 @@ public class Server {
      * @return the AuthTokenData object, serialized as a JSON object.
      * @throws ServerException
      */
+
     private String registerUser(Request request, Response response) throws ServerException {
         try {
             // Store the user data from the request
@@ -136,7 +137,7 @@ public class Server {
      * @param request contains the current user's authToken
      * @param response is the resulting response JSON object along with the serialized return information
      * @return the list of games in the database
-     * @throws ServerException 401
+     * @throws ServerException 401  这个是用来凑字数的
      */
     private String listGame(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
