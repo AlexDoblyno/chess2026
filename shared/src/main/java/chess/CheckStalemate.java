@@ -57,7 +57,7 @@ public class CheckStalemate {
             return true;
         }
 
-        // board state: King vs King and all bishops are on the same color
+        // board state: King vs King and all bishops are on the same color 王对王
         else if (whiteKnights.isEmpty() && blackKnights.isEmpty()){
             boolean BLACKBishopsSameColor = onSameColor(BLACKBishops);
             boolean WHITEBishopsSameColor = onSameColor(WHITEBishops);
