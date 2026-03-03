@@ -1,8 +1,8 @@
 package service;
 
-import models.AuthTokenData;
-import models.GameData;
-import models.UserData;
+import Models.AuthTokenData;
+import Models.GameData;
+import Models.UserData;
 import chess.ChessGame;
 import dataaccess.*;
 import server.ServerException;
@@ -12,12 +12,12 @@ import java.util.Base64;
 import java.util.Collection;
 
 public class Service {
-    UserDataAccess userDataAccess;//之后实现 用户信息
-    AuthDataAccess authDataAccess;//之后是实现，授权
-    GameDataAccess gameDataAccess;//游戏信息
+    UserDataAccess userDataAccess;
+    AuthDataAccess authDataAccess;
+    GameDataAccess gameDataAccess;
     AuthTokenData authTokenData;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final Base64.Encoder ENCODER = Base64.getUrlEncoder();
+    private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Base64.Encoder encoder = Base64.getUrlEncoder();
 
     public Service() {
         userDataAccess = new MemoryUserDataAccess();
@@ -57,12 +57,8 @@ public class Service {
      */
     public AuthTokenData login(String username, String password) throws ServerException {
         UserData userData = userDataAccess.getUserData(username);
-        if (userData == null) {
-            throw new ServerException("unauthorized", 401);
-        }
-        if(!userData.password().equals(password)) {
-            throw new ServerException("unauthorized", 401);
-        }
+        if (userData == null) throw new ServerException("unauthorized", 401);
+        if(!userData.password().equals(password)) throw new ServerException("unauthorized", 401);
 
         authTokenData = new AuthTokenData(generateAuthToken(), username);
         authDataAccess.addAuthData(authTokenData);
@@ -82,6 +78,7 @@ public class Service {
         }
         authDataAccess.removeAuthData(authData);
     }
+
     /**
      * List all games currently in the database
      * @param authToken is the user's current login session's authToken
@@ -127,26 +124,18 @@ public class Service {
     public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ServerException {
         // Check for exceptions
         AuthTokenData auth = authDataAccess.getAuthData(givenAuthData);
-        if (auth == null) {
-            throw new ServerException("unauthorized", 401);
-        }
+        if (auth == null) throw new ServerException("unauthorized", 401);
 
         GameData gameData = gameDataAccess.getGameByID(gameID);
-        if (gameData == null) {
-            throw new ServerException("bad request", 400);
-        }
+        if (gameData == null) throw new ServerException("bad request", 400);
 
         // Set the user to the specified team
         if(teamColor == ChessGame.TeamColor.WHITE){
-            if (gameData.whiteUsername() != null) {
-                throw new ServerException("already taken", 403);
-            }
+            if (gameData.whiteUsername() != null) throw new ServerException("already taken", 403);
             gameDataAccess.joinGame(auth, ChessGame.TeamColor.WHITE, gameID);
         }
         else if (teamColor == ChessGame.TeamColor.BLACK){
-            if (gameData.blackUsername() != null) {
-                throw new ServerException("already taken", 403);
-            }
+            if (gameData.blackUsername() != null) throw new ServerException("already taken", 403);
             gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameID);
         }
     }
@@ -168,8 +157,8 @@ public class Service {
     // I don't recall us talking about how to do this ourselves, so I used this implementation.
     private String generateAuthToken() {
         byte[] randomBytes = new byte[24];
-        SECURE_RANDOM.nextBytes(randomBytes);
-        String authToken = ENCODER.encodeToString(randomBytes);
+        secureRandom.nextBytes(randomBytes);
+        String authToken = encoder.encodeToString(randomBytes);
 
         // Verify uniqueness
         if (authDataAccess.getAuthData(authToken) != null) {
@@ -180,13 +169,13 @@ public class Service {
 
     private int generateGameID() {
         byte[] randomBytes = new byte[4];
-        SECURE_RANDOM.nextBytes(randomBytes);
+        secureRandom.nextBytes(randomBytes);
         // Turn bytes into integer
         int gameID = Math.abs(java.nio.ByteBuffer.wrap(randomBytes).getInt());
 
         // Verify uniqueness
         while (gameDataAccess.getGameByID(gameID) != null) {
-            SECURE_RANDOM.nextBytes(randomBytes);
+            secureRandom.nextBytes(randomBytes);
             gameID = java.nio.ByteBuffer.wrap(randomBytes).getInt();
         }
         return gameID;

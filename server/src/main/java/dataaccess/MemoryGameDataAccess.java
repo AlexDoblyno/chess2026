@@ -1,11 +1,12 @@
 package dataaccess;
 
-import models.AuthTokenData;
-import models.GameData;
+import Models.AuthTokenData;
+import Models.GameData;
 import chess.ChessGame;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 public class MemoryGameDataAccess implements GameDataAccess {
     Collection<GameData> gameDatabase;
@@ -16,6 +17,10 @@ public class MemoryGameDataAccess implements GameDataAccess {
 
     @Override
     public Collection<GameData> getGameList() {
+//        Collection<String> gameList = new HashSet<String>();
+//        for (GameData game : gameDatabase) {
+//            gameList.add(game.gameName());
+//        }
         return gameDatabase;
     }
 
