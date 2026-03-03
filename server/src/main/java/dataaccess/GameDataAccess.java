@@ -10,23 +10,18 @@ public interface GameDataAccess {
     /**
      * GameData methods
      */
-    Collection<GameData> getGameList() throws ServerException;
+    public Collection<GameData> getGameList();
 
-    GameData getGameByName(String gameName) throws ServerException;
+    public GameData getGameByName(String gameName);
 
-    GameData getGameByID(int gameID) throws ServerException;
+    public GameData getGameById(int gameId);
 
-    void createGame(GameData gameData) throws ServerException;
+    public void createGame(GameData gameData);
 
-    void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
+    public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID);
 
     /**
      * Mass deletion methods
      */
-    void clearGames() throws ServerException;
-
-    //Method for updating the username of a player in a game. Design for websocket
-    void updateGame(ChessGame.TeamColor Color, Integer gameID, String username) throws DataAccessException;
-
-    void updateChessGame(ChessGame game, Integer gameID) throws DataAccessException;
+    public void clearGames();
 }
