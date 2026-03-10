@@ -126,7 +126,7 @@ public class Service {
      * joinGame will assign the given user to the selected team color of the chosen game.
      * @param givenAuthData is the user's authData. contains username and authToken.
      * @param teamColor is the team we will assign the player to.
-     * @param gameID is the ID of the game we will try to join.
+     * @param gameID is the ID of the game we will try to join........这是为了给lab4凑数
      */
     public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ServerException {
         // Check for exceptions
