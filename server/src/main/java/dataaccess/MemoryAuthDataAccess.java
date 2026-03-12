@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.HashSet;
 
 public class MemoryAuthDataAccess implements AuthDataAccess{
-    Collection<AuthTokenData> authTokenDatabase;
+    public Collection<AuthTokenData> authTokenDatabase;
 
     public MemoryAuthDataAccess() {
         authTokenDatabase = new HashSet<AuthTokenData>();

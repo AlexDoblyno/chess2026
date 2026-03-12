@@ -10,7 +10,7 @@ import models.MessageResponse;
 import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
-import service.Service;
+import Service.Service;
 import spark.*;
 import com.google.gson.Gson;
 

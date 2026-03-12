@@ -1,4 +1,4 @@
-package Models;
+package models;
 
 import chess.ChessGame;
 import com.google.gson.Gson;
