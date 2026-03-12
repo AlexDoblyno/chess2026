@@ -1,22 +1,17 @@
 package dataaccess;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
-import chess.ChessGame;
-
-import java.util.Collection;
+import models.UserData;
 
 public interface UserDataAccess {
     /**
      * UserData methods
      */
-    public UserData getUserData(String username);
+    UserData getUserData(String username) throws ServerException, server.ServerException;
 
-    public void addUserData(UserData userData);
+    void addUserData(UserData userData) throws ServerException;
 
     /**
      * Mass deletion methods
      */
-    public void clearUsers();
+    void clearUsers() throws ServerException;
 }
