@@ -3,8 +3,8 @@ package dataaccess;
 import chess.ChessGame;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import models.AuthTokenData;
-import models.GameData;
+import Models.AuthTokenData;
+import Models.GameData;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

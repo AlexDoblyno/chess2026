@@ -1,6 +1,6 @@
 package dataaccess;
 
-import models.AuthTokenData;
+import Models.AuthTokenData;
 
 public interface AuthDataAccess {
     /**

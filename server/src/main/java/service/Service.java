@@ -1,8 +1,8 @@
 package Service;
 
-import models.AuthTokenData;
-import models.GameData;
-import models.UserData;
+import Models.AuthTokenData;
+import Models.GameData;
+import Models.UserData;
 import chess.ChessGame;
 import dataaccess.*;
 import org.mindrot.jbcrypt.BCrypt;

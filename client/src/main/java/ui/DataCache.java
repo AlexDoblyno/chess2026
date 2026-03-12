@@ -1,6 +1,6 @@
 package ui;
 
-import models.GameData;
+import Models.GameData;
 
 import java.util.ArrayList;
 import java.util.Collection;
