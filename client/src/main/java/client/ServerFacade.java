@@ -29,10 +29,10 @@ public class ServerFacade {
 
     public AuthTokenData loginUser(String username, String password) throws ResponseException {
         var path = "/session";
-        LoginRequest loginRequest = new LoginRequest(username, password);
+        // 直接用 Map 代替缺失的 LoginRequest 类，完美过编译！
+        var loginRequest = Map.of("username", username, "password", password);
         return this.makeRequest("POST", path, loginRequest, AuthTokenData.class, null);
     }
-
     public void logoutUser(String authToken) throws ResponseException {
         var path = "/session";
         this.makeRequest("DELETE", path, null, null, authToken);
@@ -92,6 +92,26 @@ public class ServerFacade {
         }
     }
 
+    private void writeJsonBody(Object request, HttpURLConnection connection) throws IOException {
+        if (request != null) {
+            connection.addRequestProperty("Content-Type", "application/json");
+            String reqData = new Gson().toJson(request);
+            try (java.io.OutputStream reqBody = connection.getOutputStream()) {
+                reqBody.write(reqData.getBytes());
+            }
+        }
+    }
+
+    private void attemptHttpRequest(HttpURLConnection connection) throws ResponseException {
+        try {
+            int status = connection.getResponseCode();
+            if (status / 100 != 2) {
+                throw new ResponseException("Error: HTTP request failed with status " + status, status);
+            }
+        } catch (IOException e) {
+            throw new ResponseException("Error: " + e.getMessage(), 500);
+        }
+    }
     private <T> T readJsonBody(HttpURLConnection connection, Class<T> responseClass) throws IOException {
         T response = null;
         if (connection.getContentLength() < 0) {
