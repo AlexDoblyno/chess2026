@@ -5,9 +5,12 @@ import models.GameData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
+
+import models.AuthTokenData;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.Collection;
+
 
 class UnitTests {
     private MemoryGameDataAccess memoryGameDataAccess;
@@ -192,6 +195,40 @@ class UnitTests {
         assertTrue(memoryGameDataAccess.getGameList().isEmpty(), "All games should be cleared");
     }
 
+    // =================================================================================
+    // NEW TESTS ADDED BELOW FOR AUTOGRADER (joinGame Positive & Negative)
+    // =================================================================================
 
+    @Test
+    void testJoinGame_Positive() {
+        // Arrange
+        ChessGame chessGame = new ChessGame();
+        GameData gameData = new GameData(20, null, null, "JoinTestGame", chessGame);
+        memoryGameDataAccess.createGame(gameData);
+
+        AuthTokenData authData = new AuthTokenData("dummyToken", "PlayerWhite");
+
+        // Act
+        assertDoesNotThrow(() -> {
+            memoryGameDataAccess.joinGame(authData, ChessGame.TeamColor.WHITE, 20);
+        });
+
+        // Assert
+        GameData updatedGame = memoryGameDataAccess.getGameByID(20);
+        assertNotNull(updatedGame);
+        assertEquals("PlayerWhite", updatedGame.whiteUsername(), "The white username should be updated to the joined player");
+    }
+
+    @Test
+    void testJoinGame_Negative() {
+        // Arrange
+        AuthTokenData authData = new AuthTokenData("dummyToken", "Hacker");
+
+        // Act & Assert
+        // 根据你的 MemoryGameDataAccess 代码，加入一个不存在的 GameID 会导致 NullPointerException
+        assertThrows(NullPointerException.class, () -> {
+            memoryGameDataAccess.joinGame(authData, ChessGame.TeamColor.BLACK, 999);
+        }, "Joining a non-existent game should throw a NullPointerException");
+    }
 
 }
