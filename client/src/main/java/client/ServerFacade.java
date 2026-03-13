@@ -2,7 +2,7 @@ package client;
 
 import chess.ChessGame;
 import com.google.gson.Gson;
-import Models.*;
+import models.*;
 import exception.ResponseException;
 
 import java.io.IOException;

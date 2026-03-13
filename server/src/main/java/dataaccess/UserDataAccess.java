@@ -1,6 +1,6 @@
 package dataaccess;
 
-import Models.UserData;
+import models.UserData;
 
 public interface UserDataAccess {
     /**

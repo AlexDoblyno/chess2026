@@ -4,13 +4,13 @@ import dataaccess.DataAccessException;
 import dataaccess.SqlAuthDataAccess;
 import dataaccess.SqlGameDataAccess;
 import dataaccess.SqlUserDataAccess;
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.MessageResponse;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.MessageResponse;
+import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
-import Service.Service;
+import service.service;
 import com.google.gson.Gson;
 
 import io.javalin.Javalin;
@@ -23,11 +23,11 @@ import java.util.Map;
 public class Server {
 
     private final Gson gson = new Gson();
-    private final Service service;
+    private final service service;
     private Javalin app; // 声明 Javalin 实例，方便后续在 stop() 中调用
 
     public Server() {
-        service = new Service();
+        service = new service();
         initializeDatabase();
     }
 

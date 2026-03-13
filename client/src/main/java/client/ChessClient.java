@@ -2,9 +2,9 @@ package client;
 
 import chess.ChessGame;
 import exception.ResponseException;
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.UserData;
 import ui.*;
 
 

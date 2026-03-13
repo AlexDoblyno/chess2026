@@ -1,9 +1,9 @@
-package Service;
+package service;
 
 import dataaccess.DataAccessException;
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.UserData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.ServerException;
@@ -13,13 +13,13 @@ import java.util.Collection;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-class ServiceUnitTests {
+class serviceUnitTests {
 
-    private Service service;
+    private service service;
 
     @BeforeEach
     void setUp() throws dataaccess.ServerException, DataAccessException {
-        service = new Service();
+        service = new service();
     }
 
     // **Test cases for register()**

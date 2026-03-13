@@ -1,7 +1,7 @@
 package server;
 
 import dataaccess.MemoryAuthDataAccess;
-import Models.AuthTokenData;
+import models.AuthTokenData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

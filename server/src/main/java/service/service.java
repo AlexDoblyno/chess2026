@@ -1,8 +1,8 @@
-package Service;
+package service;
 
-import Models.AuthTokenData;
-import Models.GameData;
-import Models.UserData;
+import models.AuthTokenData;
+import models.GameData;
+import models.UserData;
 import chess.ChessGame;
 import dataaccess.*;
 import org.mindrot.jbcrypt.BCrypt;
@@ -12,7 +12,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Collection;
 
-public class Service {
+public class service {
     UserDataAccess userDataAccess;
     AuthDataAccess authDataAccess;
     GameDataAccess gameDataAccess;
@@ -20,7 +20,7 @@ public class Service {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder();
 
-    public Service() {
+    public service() {
         userDataAccess = new SqlUserDataAccess();
         authDataAccess = new SqlAuthDataAccess();
         gameDataAccess = new SqlGameDataAccess();
