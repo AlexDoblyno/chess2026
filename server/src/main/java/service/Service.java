@@ -12,7 +12,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Collection;
 
-public class service {
+public class Service {
     UserDataAccess userDataAccess;
     AuthDataAccess authDataAccess;
     GameDataAccess gameDataAccess;
@@ -20,7 +20,7 @@ public class service {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder();
 
-    public service() {
+    public Service() {
         userDataAccess = new SqlUserDataAccess();
         authDataAccess = new SqlAuthDataAccess();
         gameDataAccess = new SqlGameDataAccess();

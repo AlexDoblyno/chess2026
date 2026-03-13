@@ -10,7 +10,7 @@ import models.MessageResponse;
 import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
-import service.service;
+import service.Service;
 import com.google.gson.Gson;
 
 import io.javalin.Javalin;
@@ -23,11 +23,11 @@ import java.util.Map;
 public class Server {
 
     private final Gson gson = new Gson();
-    private final service service;
+    private final Service service;
     private Javalin app; // 声明 Javalin 实例，方便后续在 stop() 中调用
 
     public Server() {
-        service = new service();
+        service = new Service();
         initializeDatabase();
     }
 

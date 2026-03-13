@@ -13,13 +13,13 @@ import java.util.Collection;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-class serviceUnitTests {
+class ServiceUnitTests {
 
-    private service service;
+    private Service service;
 
     @BeforeEach
     void setUp() throws dataaccess.ServerException, DataAccessException {
-        service = new service();
+        service = new Service();
     }
 
     // **Test cases for register()**
