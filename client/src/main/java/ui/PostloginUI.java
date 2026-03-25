@@ -23,8 +23,13 @@ public class PostloginUI extends BaseUI {
             case "create" -> {
                 return create(tokens);
             }
-            case "join" -> join(tokens);
-            case "observe" -> observe(tokens);
+            // 注意这里：改成了 return，以便能返回报错字符串
+            case "join" -> {
+                return join(tokens);
+            }
+            case "observe" -> {
+                return observe(tokens);
+            }
             case "logout" -> logoutUser();
             default -> {
                 return displayHelpInfo();
@@ -43,31 +48,73 @@ public class PostloginUI extends BaseUI {
         return client.createGame(gameName);
     }
 
-    private void join(String[] tokens) throws ResponseException {
+    // 把 void 改成了 String
+    private String join(String[] tokens) throws ResponseException {
         validateParameterLength(tokens, 3);
-        String joinTeam = tokens[1];
-        String gameID = tokens[2];
-        String result = client.joinGame(joinTeam,gameID);
+        String joinTeam;
+        String gameIDStr;
+
+        // 智能识别参数顺序：支持 "join white 1" 和 "join 1 white"
+        if (tokens[1].matches("\\d+")) {
+            gameIDStr = tokens[1];
+            joinTeam = tokens[2];
+        } else {
+            joinTeam = tokens[1];
+            gameIDStr = tokens[2];
+        }
+
+        int gameID;
+        try {
+            gameID = Integer.parseInt(gameIDStr);
+        } catch (NumberFormatException e) {
+            return "Error: Invalid game ID number.\n";
+        }
+
+        if (!joinTeam.equalsIgnoreCase("WHITE") && !joinTeam.equalsIgnoreCase("BLACK")) {
+            return "Error: Invalid team color. Please choose 'white' or 'black'.\n";
+        }
+
+        // 调用客户端逻辑去尝试加入游戏
+        String result = client.joinGame(joinTeam, gameIDStr);
+
+        // 🚨 【核心修复点】：如果返回值里包含了 Failed 或者 Error，说明没加进去。
+        // 我们直接返回报错信息，停止往下走，不切入 GameUI！
+        if (result.contains("Failed") || result.contains("Error")) {
+            return result + "\n\n"; // 多加两个回车，防止跟下一个输入框粘连
+        }
+
         ChessGame.TeamColor teamColor = (joinTeam.equalsIgnoreCase("WHITE") ?
                 ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
 
-        GameData gameData = client.getDataCache().getGameByIndex(Integer.parseInt(gameID));
+        GameData gameData = client.getDataCache().getGameByIndex(gameID);
+        if (gameData == null) {
+            return "Error: Game not found. Please check your game list.\n";
+        }
+
         ChessboardDrawer drawer = new ChessboardDrawer(gameData.game(), teamColor);
         GameUI gameUI = new GameUI(client, drawer, true);
 
+        // 如果上面一切顺利，才会抛出异常跳转进游戏房间，并打印棋盘
         throw new UIStateException(gameUI, result);
     }
 
-    private void observe(String[] tokens) throws ResponseException {
+    private String observe(String[] tokens) throws ResponseException {
         validateParameterLength(tokens, 2);
         int gameID = Integer.parseInt(tokens[1]);
         String result = client.observeGame(tokens[1]);
 
+        // 观战也加上失败拦截
+        if (result.contains("Failed") || result.contains("Error")) {
+            return result + "\n\n";
+        }
+
         GameData gameData = client.getDataCache().getGameByIndex(gameID);
+        if (gameData == null) {
+            return "Error: Game not found.\n";
+        }
+
         ChessboardDrawer drawer = new ChessboardDrawer(gameData.game(), ChessGame.TeamColor.WHITE);
         GameUI gameUI = new GameUI(client, drawer, false);
-
-        //System.out.println(result);
 
         throw new UIStateException(gameUI, result);
     }

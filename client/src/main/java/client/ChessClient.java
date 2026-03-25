@@ -79,27 +79,69 @@ public class ChessClient {
     }
 
     // parameters[1] is the team color, and parameters[2] is the gameID
-    public String joinGame(String... parameters) throws ResponseException {
-        ChessGame.TeamColor teamColor = getTeamColor(parameters);
-        Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
-        dataCache.setGameCache(gameList);
-        // Find the gameID based on our cacheData number system
-        GameData gameData = dataCache.getGameByIndex(Integer.parseInt(parameters[1]));
-        //需要添加input错误后的报错内容
-        server.joinGame(dataCache.getAuthToken(), teamColor, gameData.gameID());
+// 升级版 joinGame：防崩溃、智能识别参数顺序、友好提示已满房间
+    public String joinGame(String... parameters) {
+        try {
+            if (parameters.length < 2) {
+                return "Error: Expected format is 'join [team color] [game ID]', e.g., 'join white 1'";
+            }
 
-        // Set the gameboard drawer
-        drawBoard.setChessGame(gameData.game());
-        drawBoard.setPerspective(teamColor);
+            String colorStr;
+            String idStr;
 
-        StringBuilder resultString = new StringBuilder(drawBoard.drawBoardString());
-        resultString.append(String.format("Game - %s\nWhite - %s%s%s\nBlack - %s%s%s",
-                EscapeSequences.SET_TEXT_COLOR_BLUE, gameData.gameName(), EscapeSequences.RESET_TEXT_COLOR,
-                EscapeSequences.SET_TEXT_COLOR_WHITE, gameData.whiteUsername(), EscapeSequences.RESET_TEXT_COLOR,
-                EscapeSequences.SET_BG_COLOR_DARK_GREY, gameData.blackUsername(), EscapeSequences.RESET_TEXT_COLOR));
-        return resultString.toString();
+            // 智能判断参数顺序：允许 "join white 1" 也可以 "join 1 white"
+            if (parameters[0].matches("\\d+")) { // 如果第一个参数是纯数字
+                idStr = parameters[0];
+                colorStr = parameters[1];
+            } else {
+                colorStr = parameters[0];
+                idStr = parameters[1];
+            }
+
+            ChessGame.TeamColor teamColor = getTeamColor(new String[]{colorStr});
+            if (teamColor == null) {
+                return "Error: Invalid team color. Please choose 'white' or 'black'.";
+            }
+
+            int gameIndex;
+            try {
+                gameIndex = Integer.parseInt(idStr);
+            } catch (NumberFormatException e) {
+                return "Error: Invalid game ID number.";
+            }
+
+            Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
+            dataCache.setGameCache(gameList);
+
+            // 检查房间是否存在
+            GameData gameData = dataCache.getGameByIndex(gameIndex);
+            if (gameData == null) {
+                return "Error: Game not found. Please check your game list.";
+            }
+
+            // 【关键】：尝试加入游戏。如果服务器报错（例如座位有人了），在这里拦住它！
+            try {
+                server.joinGame(dataCache.getAuthToken(), teamColor, gameData.gameID());
+            } catch (ResponseException e) {
+                // 如果抛出 already taken 等异常，返回红色的友好提示，绝不崩溃！
+                return EscapeSequences.SET_TEXT_COLOR_RED + "Failed to join: " + e.getMessage() + EscapeSequences.RESET_TEXT_COLOR;
+            }
+
+            // Set the gameboard drawer
+            drawBoard.setChessGame(gameData.game());
+            drawBoard.setPerspective(teamColor);
+
+            StringBuilder resultString = new StringBuilder(drawBoard.drawBoardString());
+            resultString.append(String.format("Game - %s\nWhite - %s%s%s\nBlack - %s%s%s",
+                    EscapeSequences.SET_TEXT_COLOR_BLUE, gameData.gameName(), EscapeSequences.RESET_TEXT_COLOR,
+                    EscapeSequences.SET_TEXT_COLOR_WHITE, gameData.whiteUsername(), EscapeSequences.RESET_TEXT_COLOR,
+                    EscapeSequences.SET_BG_COLOR_DARK_GREY, gameData.blackUsername(), EscapeSequences.RESET_TEXT_COLOR));
+            return resultString.toString();
+
+        } catch (Exception e) {
+            return "An unexpected error occurred: " + e.getMessage();
+        }
     }
-
     private static ChessGame.TeamColor getTeamColor(String[] parameters) {
         // Determine team color
         ChessGame.TeamColor teamColor;
