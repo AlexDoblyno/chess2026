@@ -67,7 +67,7 @@ public class ServerFacade {
     }
 
     // These helper functions were written by examining how the petshop example managed its own helper functions.
-    //  参考了前任petshop，    这些辅助函数是通过研究 petshop 示例如何管理自己的辅助函数编写的。
+    // 参考了前任petshop，这些辅助函数是通过研究 petshop 示例如何管理自己的辅助函数编写的。
     private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass, String authToken) throws ResponseException {
         try {
             // 设置 URL 连接
@@ -94,14 +94,14 @@ public class ServerFacade {
         }
     }
 
+    // 核心修复点：移除了 connection.getContentLength() < 0 的限制
     private <T> T readJsonBody(HttpURLConnection connection, Class<T> responseClass) throws IOException {
         T response = null;
-        if (connection.getContentLength() < 0) {
+        // 只要传入了期望的返回类型（也就是我们需要从服务器拿到数据），我们就去读取并解析它
+        if (responseClass != null) {
             try (InputStream inputStream = connection.getInputStream()) {
                 InputStreamReader reader = new InputStreamReader(inputStream);
-                if (responseClass != null) {
-                    response = new Gson().fromJson(reader, responseClass);
-                }
+                response = new Gson().fromJson(reader, responseClass);
             }
         }
         return response;

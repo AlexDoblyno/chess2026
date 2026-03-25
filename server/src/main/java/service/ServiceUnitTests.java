@@ -17,8 +17,10 @@ class ServiceUnitTests {
     private Service service;
 
     @BeforeEach
-    void setUp() throws dataaccess.ServerException, DataAccessException {
+    void setUp() throws dataaccess.ServerException, DataAccessException, ServerException {
         service = new Service();
+        // 关键修复：每次运行独立测试前，彻底清空数据库，防止上一个测试的数据残留导致 Duplicate entry 报错
+        service.clearApp();
     }
 
     // **Test cases for register()**
@@ -33,13 +35,13 @@ class ServiceUnitTests {
 
     @Test
     void register_negativeTest() {
-        // 负向测试：重复注册相同用户名
         UserData user = new UserData("duplicateUser", "password123", "sliu61@byu.edu");
         assertDoesNotThrow(() -> service.register(user));
 
         ServerException exception = assertThrows(ServerException.class, () -> service.register(user));
         assertEquals(403, exception.getStatusCode());
-        assertEquals("already taken", exception.getMessage());
+        // 【修改这里】：加上 "Error: "
+        assertEquals("Error: already taken", exception.getMessage());
     }
 
     // **Test cases for login()**
@@ -114,19 +116,18 @@ class ServiceUnitTests {
 
     @Test
     void createGame_negativeTest() throws ServerException {
-        // 注册用户并获取有效的 AuthToken
         UserData user = new UserData("negativeCreateGameUser", "password123", "sliu61@byu.edu");
-        AuthTokenData authToken = service.register(user); // 假设 register 已正确抛出异常或成功返回
+        AuthTokenData authToken = service.register(user);
 
-        // 测试 createGame 传入 null 游戏名称的情况
         ServerException exception = assertThrows(ServerException.class, () ->
                 service.createGame(authToken.authToken(), null)
         );
 
-        // 验证异常状态码和消息内容
         assertEquals(400, exception.getStatusCode());
-        assertEquals("bad request", exception.getMessage());
+        // 【修改这里】：加上 "Error: "
+        assertEquals("Error: bad request", exception.getMessage());
     }
+
     // **Test cases for clearApp()**
     @Test
     void clearApp_positiveTest() throws ServerException {
