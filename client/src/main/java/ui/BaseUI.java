@@ -4,6 +4,7 @@ import client.ChessClient;
 import exception.ResponseException;
 import exception.UIStateException;
 
+import java.io.InputStream;
 import java.util.Scanner;
 
 public abstract class BaseUI implements UIState{
@@ -28,7 +29,7 @@ public abstract class BaseUI implements UIState{
     public BaseUI run() throws ResponseException {
         boolean keepRunning = true;
 
-        // Trim inputs for accuracy
+        // Trim inputs for accuracy （**trim input"** 是指对用户输入的内容进行处理，移除 **字符串两端的多余空白字符**）
         while (keepRunning) {
             String input = scanner.nextLine().trim();
 
@@ -40,6 +41,7 @@ public abstract class BaseUI implements UIState{
                 System.out.println(result);
                 System.out.print("> ");
             } catch (UIStateException e) {
+                System.out.print(e.getMessage());
                 return e.getNextState();
             }
         }

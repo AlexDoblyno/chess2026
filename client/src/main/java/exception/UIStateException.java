@@ -26,3 +26,7 @@ public class UIStateException extends ResponseException {
     return message;
   }
 }
+
+//`UIStateException` 是自定义的异常类，主要用于在用户界面（UI）的不同状态或者界面间进行**状态切换**。本质上，它是一种“非常规”方式实现的状态管理机制，用异常处理来指引 UI 层状态的跳转。
+//- **传统方式**：通常状态跳转是通过明确的返回值或状态机来实现，例如通过返回一个标志值来决定下一步的 UI 界面。
+//- **当前实现**：程序通过抛出 `UIStateException`，将其捕获后自动完成状态切换，避免手动去管理复杂的状态返回逻辑。

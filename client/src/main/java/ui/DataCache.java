@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 
 // DataCache is meant to hold data that might need to persist between REPL loops or clients.
+//DataCache 用于保存可能需要在 REPL 循环或客户端之间持久化的数据。
 public class DataCache {
     private String authToken;
     private int currentGameID;

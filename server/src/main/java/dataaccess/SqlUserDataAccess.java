@@ -1,5 +1,6 @@
 package dataaccess;
 
+import models.AuthTokenData;
 import models.UserData;
 
 import java.sql.Connection;

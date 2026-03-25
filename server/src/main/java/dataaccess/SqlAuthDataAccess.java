@@ -1,7 +1,9 @@
 package dataaccess;
 
+import com.mysql.cj.exceptions.DataReadException;
 import models.AuthTokenData;
 
+import javax.xml.crypto.Data;
 import java.sql.SQLException;
 
 public class SqlAuthDataAccess implements AuthDataAccess, SqlAccess {

@@ -4,6 +4,8 @@ import chess.ChessGame;
 import chess.ChessPiece;
 import chess.ChessPosition;
 
+import static java.lang.Math.abs;
+
 public class ChessboardDrawer {
     private ChessGame chessGame;
     private ChessGame.TeamColor perspective;
@@ -27,16 +29,24 @@ public class ChessboardDrawer {
         String clearFormatting = EscapeSequences.RESET_TEXT_BOLD_FAINT + EscapeSequences.RESET_TEXT_COLOR;
 
         // 通过当前队伍设置打印方向
-        int direction = (perspective == ChessGame.TeamColor.WHITE) ? 8 : (0);
+        int direction = (perspective == ChessGame.TeamColor.WHITE) ? 0 : (7);
 
         boardString.append(EscapeSequences.ERASE_SCREEN);
 
         // 打印A~H标签
         boardString.append(formatCoordinates);
-        boardString.append("   a b c d e f g h\n");
+        boardString.append(" \u2003 a  \u2003 b  \u2003 c  \u2003 d  \u2003 e  \u2003 f  \u2003 g  \u2003 h  \u2003 ");
+        boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
+        boardString.append("\n");
         boardString.append(clearFormatting);
 
         writeChessBoard(direction, formatCoordinates, clearFormatting);
+
+        boardString.append(formatCoordinates);
+        boardString.append(" \u2003 a  \u2003 b  \u2003 c  \u2003 d  \u2003 e  \u2003 f  \u2003 g  \u2003 h  \u2003 ");
+        boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
+        boardString.append("\n");
+        boardString.append(clearFormatting);
         return boardString.toString();
     }
 
@@ -44,16 +54,18 @@ public class ChessboardDrawer {
         // Loop打印
         for (int row = 0; row < 8; row++) {
             // 打印1~8标签
-            int displayRow = direction - row;
+            int displayRow = abs(direction - row) + 1;
             boardString.append(formatCoordinates).append(displayRow).append(" ").append(clearFormatting);
 
-            // 打印期盼
+            // 打印棋盘 (回头看看是什么导致位置错误)
             for (int col = 0; col < 8; col++) {
-                ChessPosition printPosition = new ChessPosition(row, col);
+                ChessPosition printPosition = new ChessPosition(displayRow, col+1);
                 ChessPiece printPiece = getChessGame().getBoard().getPiece(printPosition);
                 boardString.append(getSquareColor(row, col)).append(getPiece(printPiece));
                 boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
             }
+            boardString.append(formatCoordinates).append(displayRow).append(" ").append(clearFormatting);
+            boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
             boardString.append("\n");
         }
     }
@@ -72,9 +84,9 @@ public class ChessboardDrawer {
     private String getPiece(ChessPiece chessPiece) {
         StringBuilder pieceString = new StringBuilder();
         if (chessPiece == null) {
-            pieceString.append("   ");
+            pieceString.append("  \u2003  ");
         } else {
-            pieceString.append(" ");
+            pieceString.append(" "); //这里大概不需要
 
             switch (chessPiece.getPieceType()) {
                 case KING -> pieceString.append(chessPiece.getTeamColor() == ChessGame.TeamColor.WHITE ?
@@ -91,7 +103,7 @@ public class ChessboardDrawer {
                         EscapeSequences.WHITE_PAWN : EscapeSequences.BLACK_PAWN);
             }
             ;
-            pieceString.append(" ");
+            pieceString.append(" ");//
         }
         return pieceString.toString();
     }

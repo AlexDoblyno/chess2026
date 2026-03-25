@@ -40,7 +40,7 @@ public class ChessBoard {
      */
     //获取指定棋子
     public ChessPiece getPiece(ChessPosition position) {
-        return GameBoard[position.getRow() - 1][position.getColumn() - 1];
+        return GameBoard[position.getRow()-1][position.getColumn()-1];
     }
 
     /**
@@ -102,12 +102,12 @@ public class ChessBoard {
             }
         }
     }
-    public void printBoard() {
+    public void PrintBoard() {
         for (int temprow = 0; temprow < 8; temprow++){
             for (int tempcol = 0; tempcol < 8; tempcol++) {
                 if (GameBoard[temprow][tempcol] != null) {
                     ChessPiece selectedPiece = GameBoard[temprow][tempcol];
-                    printPiece(selectedPiece);
+                    PrintPiece(selectedPiece);
                 }
                 else {
                     System.out.print("[   ]");
@@ -116,7 +116,7 @@ public class ChessBoard {
             System.out.println();
         }
     } //打印期盼
-    private void printPiece(ChessPiece selectedPiece){
+    private void PrintPiece(ChessPiece selectedPiece){
         if (selectedPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
             System.out.print("[B");
         }

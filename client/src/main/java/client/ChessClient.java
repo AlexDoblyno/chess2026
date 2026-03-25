@@ -10,6 +10,8 @@ import ui.*;
 
 import java.util.Collection;
 
+import static chess.ChessGame.TeamColor.OBSERVE;
+
 public class ChessClient {
     private final ServerFacade server;
     private final String serverURL;
@@ -79,16 +81,18 @@ public class ChessClient {
     // parameters[1] is the team color, and parameters[2] is the gameID
     public String joinGame(String... parameters) throws ResponseException {
         ChessGame.TeamColor teamColor = getTeamColor(parameters);
+        Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
+        dataCache.setGameCache(gameList);
         // Find the gameID based on our cacheData number system
         GameData gameData = dataCache.getGameByIndex(Integer.parseInt(parameters[1]));
-
+        //需要添加input错误后的报错内容
         server.joinGame(dataCache.getAuthToken(), teamColor, gameData.gameID());
 
         // Set the gameboard drawer
         drawBoard.setChessGame(gameData.game());
         drawBoard.setPerspective(teamColor);
 
-        StringBuilder resultString = new StringBuilder();
+        StringBuilder resultString = new StringBuilder(drawBoard.drawBoardString());
         resultString.append(String.format("Game - %s\nWhite - %s%s%s\nBlack - %s%s%s",
                 EscapeSequences.SET_TEXT_COLOR_BLUE, gameData.gameName(), EscapeSequences.RESET_TEXT_COLOR,
                 EscapeSequences.SET_TEXT_COLOR_WHITE, gameData.whiteUsername(), EscapeSequences.RESET_TEXT_COLOR,
@@ -113,15 +117,21 @@ public class ChessClient {
 
     // parameters[1] is the gameID
     public String observeGame(String... parameters) throws ResponseException {
-        GameData gameData = dataCache.getGameByIndex(Integer.parseInt(parameters[1]));
+        int gameindex = Integer.parseInt(parameters[0]);
+        Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
+        dataCache.setGameCache(gameList);
+        GameData gameData = dataCache.getGameByIndex(gameindex);
 
-        server.joinGame(dataCache.getAuthToken(), null, gameData.gameID());
+        server.joinGame(dataCache.getAuthToken(), OBSERVE, gameData.gameID());
 
         // Set the gameboard drawer
         drawBoard.setChessGame(gameData.game());
         return drawBoard.drawBoardString();
     }
-
+    public String quitGame() throws ResponseException {
+        //server
+        return "Quit";
+    }
     public String logout() throws ResponseException {
         server.logoutUser(dataCache.getAuthToken());
         dataCache.setAuthToken(null);

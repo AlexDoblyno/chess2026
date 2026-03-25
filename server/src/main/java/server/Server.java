@@ -11,20 +11,17 @@ import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
 import service.Service;
+import spark.*;
 import com.google.gson.Gson;
-
-import io.javalin.Javalin;
-import io.javalin.http.Context;
-import io.javalin.http.staticfiles.Location;
 
 import java.util.Collection;
 import java.util.Map;
 
 public class Server {
 
+    // Create a single Gson object for all Gson operations
     private final Gson gson = new Gson();
     private final Service service;
-    private Javalin app; // 声明 Javalin 实例，方便后续在 stop() 中调用
 
     public Server() {
         service = new Service();
@@ -32,35 +29,41 @@ public class Server {
     }
 
     public int run(int desiredPort) {
-        // 初始化 Javalin 并配置静态文件
-        app = Javalin.create(config -> {
-            config.staticFiles.add("web", Location.CLASSPATH);
-        }).start(desiredPort);
+        Spark.port(desiredPort);
 
-        // 注册 endpoints
-        app.post("/user", this::registerUser);
-        app.post("/session", this::loginUser);
-        app.delete("/session", this::logoutUser);
-        app.get("/game", this::listGame);
-        app.post("/game", this::createGame);
-        app.put("/game", this::joinGame);
-        app.delete("/db", this::clearDatabase);
+        Spark.staticFiles.location("web");
 
-        // 注册异常处理
-        app.exception(ServerException.class, this::handleException);
-        app.exception(Exception.class, this::handleException); // 捕获所有未被处理的其他异常
+        // Register your endpoints and handle exceptions here.
+        Spark.post("/user", this::registerUser);
+        Spark.post("/session", this::loginUser);
+        Spark.delete("/session", this::logoutUser);
+        Spark.get("/game", this::listGame);
+        Spark.post("/game", this::createGame);
+        Spark.put("/game", this::joinGame);
+        Spark.delete("/db", this::clearDatabase);
 
-        return app.port();
+        Spark.exception(ServerException.class, this::handleException);
+
+        //This line initializes the server and can be removed once you have a functioning endpoint
+        Spark.init();
+
+        Spark.awaitInitialization();
+        return Spark.port();
     }
+
 
     /**
      * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
      * into the server's database.
+     * @param request is the JSON request to register a user. Contains username, password, and email.
+     * @param response is the resulting response JSON object along with the serialized return information
+     * @return the AuthTokenData object, serialized as a JSON object.
+     * @throws ServerException
      */
-    private void registerUser(Context ctx) {
+    private String registerUser(Request request, Response response) {
         try {
             // Store the user data from the request
-            UserData submittedUser = gson.fromJson(ctx.body(), UserData.class);
+            UserData submittedUser = new Gson().fromJson(request.body(), UserData.class);
 
             // Trim the username
             String trimmedUsername = submittedUser.username().trim();
@@ -72,165 +75,235 @@ public class Server {
             }
 
             // Register user data
-            AuthTokenData authToken = service.register(user);
-            ctx.status(200);
-            ctx.result(gson.toJson(authToken));
+            AuthTokenData authToken = null;
+            try {
+                authToken = service.register(user);
+            } catch (ServerException e) {
+                response.status(e.getStatusCode());
+                    throw new ServerException("error| "+e.getMessage(),e.getStatusCode());
+            }
+            response.status(200);
+            return gson.toJson(authToken);
 
         } catch (JsonSyntaxException e) {
-            e.printStackTrace();
-            createErrorResponse(ctx, "Error! bad request", 400);
+            // Handle invalid JSON structure
+            e.printStackTrace(); // 打印日志
+            return createErrorResponse(response, "Error! bad request", 400);
+
         } catch (ServerException e) {
+            // Handle ServerException and create a meaningful response
             e.printStackTrace();
-            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
+            return createErrorResponse(response, "error| "+e.getMessage(), e.getStatusCode());
         }
     }
 
-    // 通用的方法来创建错误响应
-    private void createErrorResponse(Context ctx, String errorMessage, int statusCode) {
-        ctx.status(statusCode);
-        ctx.result(gson.toJson(new MessageResponse(errorMessage)));
+    // 添加一个通用的方法来创建错误响应
+    private String createErrorResponse(Response response, String errorMessage, int statusCode) {
+        response.status(statusCode);
+        return gson.toJson(new MessageResponse(errorMessage)); // 构建错误信息的 JSON 响应
     }
 
     /**
      * loginUser will attempt to log in the user given a username and password.
+     * @param request is the JSON request to register a user. Contains username and password.
+     * @param response is the resulting response JSON object along with the serialized return information
+     * @return the AuthTokenData object, serialized as a JSON object.
+     * @throws ServerException
      */
-    private void loginUser(Context ctx) throws ServerException {
+    private String loginUser(Request request, Response response) throws ServerException {
+        /**
+         * Small record class specifically for deserializing the login request
+         */
         record UserLoginCredentials(String username, String password) {}
 
-        UserLoginCredentials userLogin = gson.fromJson(ctx.body(), UserLoginCredentials.class);
+        // Store the credentials from the request
+        UserLoginCredentials userLogin = new Gson().fromJson(request.body(), UserLoginCredentials.class);
         if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
             throw new ServerException("bad request", 400);
         }
 
+        String username = userLogin.username;
+        String password = userLogin.password;
+
         try {
-            AuthTokenData authToken = service.login(userLogin.username(), userLogin.password());
-            ctx.status(200);
-            ctx.result(gson.toJson(authToken));
+            AuthTokenData authToken = service.login(username, password);
+            response.status(200);
+            return gson.toJson(authToken);
         } catch(ServerException e) {
-            ctx.status(e.getStatusCode());
-            ctx.result(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
+            response.status(e.getStatusCode());
+            response.body(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
+            return response.body();
         }
+
     }
 
     /**
      * logoutUser will attempt to log out the user given the session's authtoken.
+     * @param request contains the authToken we are seeking to remove
+     * @param response is the resulting response JSON object along with the serialized return information
+     * @throws ServerException
      */
-    private void logoutUser(Context ctx) throws ServerException {
-        String authToken = ctx.header("authorization");
+    private Object logoutUser(Request request, Response response) throws ServerException {
+        String authToken = request.headers("authorization");
 
-        try {
+        try{
             service.logOut(authToken);
-            ctx.status(200);
-            ctx.result("");
         } catch (ServerException e) {
             e.printStackTrace();
-            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
+            response.status(e.getStatusCode());
+            return createErrorResponse(response, "error| "+ e.getMessage(), e.getStatusCode());
         }
+        response.status(200);
+        return "";
     }
 
     /**
      * listGame will return a list of all current games in the database
+     * @param request contains the current user's authToken
+     * @param response is the resulting response JSON object along with the serialized return information
+     * @return the list of games in the database
+     * @throws ServerException 401
      */
-    private void listGame(Context ctx) throws ServerException {
-        String authToken = ctx.header("authorization");
+    private String listGame(Request request, Response response) throws ServerException {
+        String authToken = request.headers("authorization");
+        Collection<GameData> gameList = null;
         try {
-            Collection<GameData> gameList = service.listGames(authToken);
-            ctx.status(200);
-            Map<String, Object> jsonMap = Map.of("games", gameList);
-            ctx.result(gson.toJson(jsonMap));
+            gameList = service.listGames(authToken);
         } catch (ServerException e) {
             throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
         }
+        response.status(200);
+        Map<String, Object> jsonMap = Map.of("games", gameList);
+        return gson.toJson(jsonMap);
     }
 
     /**
      * createGame will create a new GameData object in the database.
+     * @param request contains the user's authToken and the name of the game object they want to create.
+     * @param response is the resulting response JSON object along with the serialized return information
+     * @return the gameID of the new game object
+     * @throws ServerException 400, 401
      */
-    private void createGame(Context ctx) throws ServerException {
-        Map<String, String> requestBody = gson.fromJson(ctx.body(), Map.class);
-        String authToken = ctx.header("authorization");
+    private String createGame(Request request, Response response) throws ServerException {
+        Map<String, String> requestBody = gson.fromJson(request.body(), Map.class);
+        String authToken = request.headers("authorization");
         String gameName = requestBody.get("gameName");
 
-        try {
-            int gameID = service.createGame(authToken, gameName);
-            ctx.status(200);
-            Map<String, Integer> jsonMap = Map.of("gameID", gameID);
-            ctx.result(gson.toJson(jsonMap));
-        } catch (ServerException e) {
-            createErrorResponse(ctx, e.getMessage(), e.getStatusCode());
+        int gameID;
+        try{
+            gameID = service.createGame(authToken, gameName);
+        }catch (ServerException e){
+            response.status(e.getStatusCode());
+            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
         }
+        response.status(200);
+        Map<String, Integer> jsonMap = Map.of("gameID", gameID);
+        return gson.toJson(jsonMap);
     }
 
     /**
      * joinGame will add a user to an existing GameData object in the database.
+     * @param request contains the authData, playerColor and gameID
+     * @param response contains only the success code (or error message).
      */
-    private void joinGame(Context ctx) throws ServerException {
-        Map<String, Object> requestBody = gson.fromJson(ctx.body(), Map.class);
-        String authData = ctx.header("authorization");
+    private Object joinGame(Request request, Response response) throws ServerException {
+        Map<String, Object> requestBody = gson.fromJson(request.body(), Map.class);
+        ChessGame.TeamColor teamColor;
+        String authData;
+//commit
+        // Assign variables for our Service function call
+        authData = request.headers("authorization");
 
         if (validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
-            ChessGame.TeamColor teamColor;
-            String colorStr = (String) requestBody.get("playerColor");
-
-            if (colorStr.equalsIgnoreCase("WHITE")) {
+            if (((String) requestBody.get("playerColor")).equalsIgnoreCase("WHITE")) {
                 teamColor = ChessGame.TeamColor.WHITE;
-            } else if (colorStr.equalsIgnoreCase("BLACK")){
+            } else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("BLACK")){
                 teamColor = ChessGame.TeamColor.BLACK;
-            } else {
+            }else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("OBSERVE")){
+                teamColor = ChessGame.TeamColor.OBSERVE;
+            }
+            else {
                 throw new ServerException("bad request", 400);
             }
-
             double gameIDDouble = (double) requestBody.get("gameID");
             int gameID = (int) gameIDDouble;
 
             service.joinGame(authData, teamColor, gameID);
-            ctx.status(200);
-            ctx.result("");
-        } else {
+            response.status(200);
+        }
+        else {
             throw new ServerException("bad request", 400);
         }
+        return "";
     }
 
     /**
-     * clearDatabase will clear the database.
+     * clearDatabase will clear the database. I'm sure that doesn't come as a shock to you.
+     * @param request contains really nothing as far as I could understand
+     * @param response contains nothing but the success code, exception info, and my feelings of resignation at
+     *                 having to make these large comment headers for every function (it's good practice)
      */
-    private void clearDatabase(Context ctx) throws ServerException {
+    private Object clearDatabase(Request request, Response response) throws ServerException {
         service.clearApp();
-        ctx.status(200);
-        ctx.result("");
+        response.status(200);
+        return "";
     }
 
     /**
      * Method to handle exceptions
+     * @param e is the exception
+     * @param request is the request
+     * @param response is the response
      */
-    private void handleException(Exception e, Context ctx) {
+    private void handleException(Exception e, Request request, Response response) {
         int statusCode;
         String errorMessage;
+        MessageResponse messageResponse;
 
         if (e instanceof ServerException serverException) {
-            statusCode = serverException.getStatusCode();
+            statusCode = ((ServerException) e).getStatusCode();
             errorMessage = "Error: " + e.getMessage();
-        } else {
+            messageResponse = new MessageResponse(errorMessage);
+        }
+        else {
             statusCode = 500;
             errorMessage = "Error: " + e.getMessage();
+            messageResponse = new MessageResponse(errorMessage);
         }
 
-        MessageResponse messageResponse = new MessageResponse(errorMessage);
-        ctx.status(statusCode);
-        ctx.contentType("application/json");
-        ctx.result(gson.toJson(messageResponse));
+        response.status(statusCode);
+        response.type("application/json");
+        response.body(gson.toJson(messageResponse));
     }
 
+    /**
+     * validateUsername will check to see if an input string is null or empty.
+     * @param input The input to check validity of
+     * @return true if the input is valid
+     */
     private Boolean validateInput(String input) {
         return input != null && !input.isEmpty();
     }
 
+    /**
+     * validateEmail will make sure that the submitted email follows correct email format.
+     * We use a regex function to accomplish this.
+     * @param email is the email to check
+     * @return true if the email is valid
+     */
     private Boolean validateEmail(String email) {
+        // EMAIL_REGEX constant was written by amittn on Stack Overflow, with minor changes
+        // https://stackoverflow.com/questions/58189908/regex-for-email-validation-including-blank-field-valid-as-well
+//        final String EMAIL_REGEX = "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
+//        final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
+
+        //            return EMAIL_PATTERN.matcher(email).matches();
         return email != null;
     }
 
     private void initializeDatabase() {
         try {
+            // User data initialized first
             SqlUserDataAccess userDataAccess = new SqlUserDataAccess();
             userDataAccess.configureDatabase();
 
@@ -239,15 +312,15 @@ public class Server {
 
             authDataAccess.configureDatabase();
             gameDataAccess.configureDatabase();
-        } catch (dataaccess.ServerException | DataAccessException e) {
+        } catch (dataaccess.ServerException e) {
             throw new RuntimeException("Database initialization failed: " + e.getMessage());
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void stop() {
-        if (app != null) {
-            app.stop();
-        }
+        Spark.stop();
+        Spark.awaitStop();
     }
 }
-//总共修改javalin，不知道test有没有问题，先提交
