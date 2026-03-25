@@ -4,75 +4,70 @@ import chess.ChessGame;
 import chess.ChessPiece;
 import chess.ChessPosition;
 
-import static java.lang.Math.abs;
-
 public class ChessboardDrawer {
     private ChessGame chessGame;
     private ChessGame.TeamColor perspective;
-    private final StringBuilder boardString;
 
     public ChessboardDrawer() {
         chessGame = new ChessGame();
         perspective = ChessGame.TeamColor.WHITE;
-        boardString = new StringBuilder();
     }
 
     public ChessboardDrawer(ChessGame currentGame, ChessGame.TeamColor teamColor) {
         chessGame = currentGame;
         perspective = teamColor;
-        boardString = new StringBuilder();
     }
 
     public String drawBoardString() {
+        // 🚨 修复连打 5 次的 Bug：把 StringBuilder 变成局部变量，每次清空重来
+        StringBuilder boardString = new StringBuilder();
 
-        String formatCoordinates = EscapeSequences.SET_TEXT_BOLD + EscapeSequences.SET_BG_COLOR_DARK_GREEN;
-        String clearFormatting = EscapeSequences.RESET_TEXT_BOLD_FAINT + EscapeSequences.RESET_TEXT_COLOR;
+        String formatCoordinates = EscapeSequences.SET_TEXT_BOLD + EscapeSequences.SET_BG_COLOR_DARK_GREEN + EscapeSequences.SET_TEXT_COLOR_WHITE;
+        String clearFormatting = EscapeSequences.RESET_TEXT_BOLD_FAINT + EscapeSequences.RESET_TEXT_COLOR + EscapeSequences.RESET_BG_COLOR;
 
-        // 通过当前队伍设置打印方向
-        int direction = (perspective == ChessGame.TeamColor.WHITE) ? 0 : (7);
+        // 判断当前视角是否为白方（如果观战 OBSERVE 传入 null，默认用白方视角）
+        boolean isWhite = (perspective != ChessGame.TeamColor.BLACK);
 
         boardString.append(EscapeSequences.ERASE_SCREEN);
 
-        // 打印A~H标签
-        boardString.append(formatCoordinates);
-        boardString.append(" \u2003 a  \u2003 b  \u2003 c  \u2003 d  \u2003 e  \u2003 f  \u2003 g  \u2003 h  \u2003 ");
-        boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
-        boardString.append("\n");
-        boardString.append(clearFormatting);
+        // 🚨 修复字母行翻转：白方 a->h，黑方 h->a
+        String letters = isWhite ?
+                " \u2003 a  \u2003 b  \u2003 c  \u2003 d  \u2003 e  \u2003 f  \u2003 g  \u2003 h  \u2003 " :
+                " \u2003 h  \u2003 g  \u2003 f  \u2003 e  \u2003 d  \u2003 c  \u2003 b  \u2003 a  \u2003 ";
 
-        writeChessBoard(direction, formatCoordinates, clearFormatting);
+        // 打印顶部字母标签
+        boardString.append(formatCoordinates).append(letters).append(clearFormatting).append("\n");
 
-        boardString.append(formatCoordinates);
-        boardString.append(" \u2003 a  \u2003 b  \u2003 c  \u2003 d  \u2003 e  \u2003 f  \u2003 g  \u2003 h  \u2003 ");
-        boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
-        boardString.append("\n");
-        boardString.append(clearFormatting);
-        return boardString.toString();
-    }
+        // Loop 打印棋盘核心逻辑
+        for (int rowOffset = 0; rowOffset < 8; rowOffset++) {
+            // 🚨 修复数字列翻转：白方从上到下是 8->1，黑方从上到下是 1->8
+            int displayRow = isWhite ? (8 - rowOffset) : (1 + rowOffset);
 
-    private void writeChessBoard(int direction, String formatCoordinates, String clearFormatting) {
-        // Loop打印
-        for (int row = 0; row < 8; row++) {
-            // 打印1~8标签
-            int displayRow = abs(direction - row) + 1;
-            boardString.append(formatCoordinates).append(displayRow).append(" ").append(clearFormatting);
+            // 打印左侧数字标签
+            boardString.append(formatCoordinates).append(" ").append(displayRow).append(" ").append(clearFormatting);
 
-            // 打印棋盘 (回头看看是什么导致位置错误)
-            for (int col = 0; col < 8; col++) {
-                ChessPosition printPosition = new ChessPosition(displayRow, col+1);
+            for (int colOffset = 0; colOffset < 8; colOffset++) {
+                // 列坐标也随着视角翻转：白方 1->8，黑方 8->1
+                int displayCol = isWhite ? (1 + colOffset) : (8 - colOffset);
+
+                ChessPosition printPosition = new ChessPosition(displayRow, displayCol);
                 ChessPiece printPiece = getChessGame().getBoard().getPiece(printPosition);
-                boardString.append(getSquareColor(row, col)).append(getPiece(printPiece));
-                boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
-            }
-            boardString.append(formatCoordinates).append(displayRow).append(" ").append(clearFormatting);
-            boardString.append(EscapeSequences.RESET_TEXT_COLOR).append(EscapeSequences.RESET_BG_COLOR);
-            boardString.append("\n");
-        }
-    }
 
-    private String getSquareColor(int row, int col) {
-        boolean isWhiteSquare = (row + col) % 2 == 0;
-        return (isWhiteSquare ? EscapeSequences.SET_BG_COLOR_LIGHT_GREY : EscapeSequences.SET_BG_COLOR_DARK_GREY);
+                // 🚨 绝对正确的棋盘颜色算法：坐标 (row + col) 为奇数是白格，偶数是黑格（例如 a1 = 1+1 = 2，黑格）
+                boolean isLightSquare = (displayRow + displayCol) % 2 != 0;
+                String bgColor = isLightSquare ? EscapeSequences.SET_BG_COLOR_LIGHT_GREY : EscapeSequences.SET_BG_COLOR_DARK_GREY;
+
+                boardString.append(bgColor).append(getPiece(printPiece));
+            }
+
+            // 打印右侧数字标签
+            boardString.append(formatCoordinates).append(" ").append(displayRow).append(" ").append(clearFormatting).append("\n");
+        }
+
+        // 打印底部字母标签
+        boardString.append(formatCoordinates).append(letters).append(clearFormatting).append("\n");
+
+        return boardString.toString();
     }
 
     /**
@@ -86,8 +81,7 @@ public class ChessboardDrawer {
         if (chessPiece == null) {
             pieceString.append("  \u2003  ");
         } else {
-            pieceString.append(" "); //这里大概不需要
-
+            pieceString.append(" ");
             switch (chessPiece.getPieceType()) {
                 case KING -> pieceString.append(chessPiece.getTeamColor() == ChessGame.TeamColor.WHITE ?
                         EscapeSequences.WHITE_KING : EscapeSequences.BLACK_KING);
@@ -102,8 +96,7 @@ public class ChessboardDrawer {
                 case PAWN -> pieceString.append(chessPiece.getTeamColor() == ChessGame.TeamColor.WHITE ?
                         EscapeSequences.WHITE_PAWN : EscapeSequences.BLACK_PAWN);
             }
-            ;
-            pieceString.append(" ");//
+            pieceString.append(" ");
         }
         return pieceString.toString();
     }
