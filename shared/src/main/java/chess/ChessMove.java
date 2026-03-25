@@ -64,7 +64,10 @@ public class ChessMove {
         if (!(o instanceof ChessMove chessMove)) {
             return false;
         }
-        return Objects.equals(StartPosition, chessMove.StartPosition) && Objects.equals(EndPosition, chessMove.EndPosition) && promotionPiece == chessMove.promotionPiece;
+        // 【修改点】：在这里通过回车进行了折行，避免单行超过 150 个字符
+        return Objects.equals(StartPosition, chessMove.StartPosition) &&
+                Objects.equals(EndPosition, chessMove.EndPosition) &&
+                promotionPiece == chessMove.promotionPiece;
     }
 
     @Override

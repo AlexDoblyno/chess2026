@@ -136,10 +136,17 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
 
     private GameData deserializeGameData(ResultSet response) throws SQLException {
         int gameID = response.getInt("gameID");
+
         String whiteUser = response.getString("whiteUsername");
-        if (response.wasNull()) whiteUser = null;
+        if (response.wasNull()) {
+            whiteUser = null;
+        }
+
         String blackUser = response.getString("blackUsername");
-        if (response.wasNull()) blackUser = null;
+        if (response.wasNull()) {
+            blackUser = null;
+        }
+
         String dbGameName = response.getString("gameName");
         String gameJson = response.getString("game");
 

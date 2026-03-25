@@ -33,7 +33,10 @@ public class PawnMoves extends PieceMoves {
         if (Team == ChessGame.TeamColor.BLACK && StartPosition.getRow() == 7) {
             return true;
         }
-        else return Team == ChessGame.TeamColor.WHITE && StartPosition.getRow() == 2;
+        // 【修改点】：给 else 加上了大括号 {}
+        else {
+            return Team == ChessGame.TeamColor.WHITE && StartPosition.getRow() == 2;
+        }
     }
 
     private void checkCorners() {
