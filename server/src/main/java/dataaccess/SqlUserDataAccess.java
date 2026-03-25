@@ -1,6 +1,5 @@
 package dataaccess;
 
-import models.AuthTokenData;
 import models.UserData;
 
 import java.sql.Connection;
@@ -9,15 +8,15 @@ import java.sql.SQLException;
 public class SqlUserDataAccess implements UserDataAccess, SqlAccess {
 
     public SqlUserDataAccess () {
-            try {
-                configureDatabase();
-            } catch (ServerException e) {
-                return ;
-            }
+        try {
+            configureDatabase();
+        } catch (ServerException | DataAccessException e) {
+            return;
         }
+    }
 
     @Override
-    public UserData getUserData(String username) throws ServerException, server.ServerException {
+    public UserData getUserData(String username) throws ServerException {
         Connection conn;
         try{
             conn = DatabaseManager.getConnection();
@@ -27,38 +26,28 @@ public class SqlUserDataAccess implements UserDataAccess, SqlAccess {
         var fetch = "SELECT * FROM UserData WHERE username = ?";
         try {
             UserData response = getUserDataFetch(username, conn, fetch);
-            if (response.username() != null && response.password() != null && response.email() != null) {
+            if (response != null && response.username() != null && response.password() != null && response.email() != null) {
                 return response;
             }
-        }catch (SQLException e) {
+        } catch (SQLException e) {
             if(e.getMessage().contains("not found")){
                 return null;
-            }else{
+            } else {
                 throw new ServerException("Error: Userdata get failed: " + e.getMessage());
-                }
             }
+        }
         return null;
     }
 
-    /**
-     * Helper method to assist in getting the user data
-     * @param username is the given username to search for
-     * @param conn is the database connection
-     * @param fetch is the fetch statement
-     * @return the userdata if it exists
-     * @throws SQLException if no userdata exists
-     */
     private static UserData getUserDataFetch(String username, Connection conn, String fetch) throws SQLException {
         try (var preparedStatement = conn.prepareStatement(fetch)) {
             preparedStatement.setString(1, username);
-
             try (var response = preparedStatement.executeQuery()) {
-                try {
-                    response.next();
+                if (response.next()) {
                     return new UserData(response.getString("username"),
                             response.getString("password"),
                             response.getString("email"));
-                } catch (SQLException e) {
+                } else {
                     throw new SQLException("User not found");
                 }
             }
@@ -69,16 +58,13 @@ public class SqlUserDataAccess implements UserDataAccess, SqlAccess {
     public void addUserData(UserData userData) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
             var insert = "INSERT INTO UserData (username, password, email) VALUES (?, ?, ?)";
-
             try (var preparedStatement = conn.prepareStatement(insert)) {
                 preparedStatement.setString(1, userData.username());
                 preparedStatement.setString(2, userData.password());
                 preparedStatement.setString(3, userData.email());
                 preparedStatement.executeUpdate();
             }
-        } catch (SQLException e) {
-            throw new ServerException("Userdata add failed: " + e.getMessage());
-        } catch (DataAccessException e) {
+        } catch (SQLException | DataAccessException e) {
             throw new ServerException("Userdata add failed: " + e.getMessage());
         }
     }
@@ -87,13 +73,10 @@ public class SqlUserDataAccess implements UserDataAccess, SqlAccess {
     public void clearUsers() throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
             var clear = "DELETE FROM UserData";
-
             try (var preparedStatement = conn.prepareStatement(clear)) {
                 preparedStatement.executeUpdate();
             }
-        } catch (SQLException e) {
-            throw new ServerException("UserData clear failed: " + e.getMessage());
-        } catch (DataAccessException e) {
+        } catch (SQLException | DataAccessException e) {
             throw new ServerException("UserData clear failed: " + e.getMessage());
         }
     }
@@ -108,38 +91,11 @@ public class SqlUserDataAccess implements UserDataAccess, SqlAccess {
             """
     };
 
-    @Override
-    public int executeUpdate(String statement, Object... params) throws ServerException {
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement(statement)) {
-                for (int i = 0; i < params.length; i++) {
-                    preparedStatement.setObject(i + 1, params[i]);
-                }
-                return preparedStatement.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new ServerException("Update failed: " + e.getMessage());
-        } catch (DataAccessException e) {
-            throw new ServerException("Update failed: " + e.getMessage());
-        }
-    }
+    // 这里已经删除了 executeUpdate 方法，它会自动继承接口里的默认方法！
 
     @Override
-    public void configureDatabase() throws ServerException {
-        try {
-            DatabaseManager.createDatabase();
-        } catch (DataAccessException e) {
-            throw new ServerException(e.getMessage());
-        }
-        try (var conn = DatabaseManager.getConnection()) {
-            for (var statement : createStatements) {
-                try (var preparedStatement = conn.prepareStatement(statement)) {
-                    preparedStatement.executeUpdate();
-                }
-            }
-        } catch (SQLException | DataAccessException e) {
-            throw new ServerException(e.getMessage());
-        }
-
+    public void configureDatabase() throws ServerException, DataAccessException {
+        // 直接调用接口里写好的默认逻辑
+        configureDatabase(createStatements);
     }
 }

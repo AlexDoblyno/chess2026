@@ -16,32 +16,24 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     public SqlGameDataAccess () {
         try {
             configureDatabase();
-        } catch (ServerException e) {
-            throw new RuntimeException(e);
-        } catch (DataAccessException e) {
+        } catch (ServerException | DataAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
     public Collection<GameData> getGameList() throws ServerException {
-        HashSet<GameData> gameList = new HashSet<GameData>();
+        HashSet<GameData> gameList = new HashSet<>();
         String listStatement = "SELECT * FROM GameData";
 
-        // Enclosing multiple statements within a try block.
-        // I fed my code into Perplexity AI and it recommended this to stop resource leaks.
-        // It also means less nesting, so I may try to implement it through the rest of my code.
         try (var conn = DatabaseManager.getConnection();
              var preparedStatement = conn.prepareStatement(listStatement);
-             var response = preparedStatement.executeQuery();) {
+             var response = preparedStatement.executeQuery()) {
 
-            // loop to map the whole thing into gameList
             while (response.next()) {
                 gameList.add(deserializeGameData(response));
             }
-        } catch (SQLException e) {
-            throw new ServerException("GameData list get failed: " + e.getMessage());
-        } catch (DataAccessException e) {
+        } catch (SQLException | DataAccessException e) {
             throw new ServerException("GameData list get failed: " + e.getMessage());
         }
         return gameList;
@@ -51,10 +43,8 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     public GameData getGameByName(String gameName) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
             String fetch = "SELECT * FROM GameData WHERE gameName = ?";
-
             try (var preparedStatement = conn.prepareStatement(fetch)) {
                 preparedStatement.setString(1, gameName);
-
                 try (var response = preparedStatement.executeQuery()) {
                     if (!response.next()) {
                         return null;
@@ -71,10 +61,8 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     public GameData getGameByID(int gameID) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
             String fetch = "SELECT * FROM GameData WHERE gameID = ?";
-
             try (var preparedStatement = conn.prepareStatement(fetch)) {
                 preparedStatement.setInt(1, gameID);
-
                 try (var response = preparedStatement.executeQuery()) {
                     if (!response.next()) {
                         return null;
@@ -100,7 +88,6 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
                 preparedStatement.setObject(3, gameData.blackUsername());
                 preparedStatement.setString(4, gameData.gameName());
 
-                // Serialize the game data
                 String gameJson = gson.toJson(gameData.game());
                 preparedStatement.setString(5, gameJson);
 
@@ -117,8 +104,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
             String join = null;
             if (team == ChessGame.TeamColor.WHITE) {
                 join = "UPDATE GameData SET whiteUsername = ? WHERE gameID = ? AND whiteUsername IS NULL";
-            }
-            else if (team == ChessGame.TeamColor.BLACK){
+            } else if (team == ChessGame.TeamColor.BLACK){
                 join = "UPDATE GameData SET blackUsername = ? WHERE gameID = ? AND blackUsername IS NULL";
             }
 
@@ -131,9 +117,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
                     throw new ServerException("Join game failed: Invalid game or existing user");
                 }
             }
-        } catch (SQLException e) {
-            throw new ServerException("Join game failed: " + e.getMessage());
-        } catch (DataAccessException e) {
+        } catch (SQLException | DataAccessException e) {
             throw new ServerException("Join game failed: " + e.getMessage());
         }
     }
@@ -142,49 +126,20 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     public void clearGames() throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
             var clear = "DELETE FROM GameData";
-
             try (var preparedStatement = conn.prepareStatement(clear)) {
                 preparedStatement.executeUpdate();
             }
         } catch (SQLException | DataAccessException e) {
             throw new ServerException("GameData clear failed: " + e.getMessage());
-
         }
     }
 
-    @Override
-    public int executeUpdate(String statement, Object... params) throws ServerException {
-        try (var conn = DatabaseManager.getConnection()) {
-            try (var preparedStatement = conn.prepareStatement(statement)) {
-                for (int i = 0; i < params.length; i++) {
-                    preparedStatement.setObject(i + 1, params[i]);
-                }
-                return preparedStatement.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new ServerException("Update failed: " + e.getMessage());
-        } catch (DataAccessException e) {
-            throw new ServerException("Update failed: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Helper function to deserialize game data from JSON
-     * @param response is the resultset that we pass for deserialization
-     * @return a new GameData object from the response JSON
-     * @throws SQLException
-     */
     private GameData deserializeGameData(ResultSet response) throws SQLException {
-        // GameData objects are complicated, so we store all the parameters separately before creation
         int gameID = response.getInt("gameID");
         String whiteUser = response.getString("whiteUsername");
-        if (response.wasNull()) {
-            whiteUser = null;
-        }
+        if (response.wasNull()) whiteUser = null;
         String blackUser = response.getString("blackUsername");
-        if (response.wasNull()) {
-            blackUser = null;
-        }
+        if (response.wasNull()) blackUser = null;
         String dbGameName = response.getString("gameName");
         String gameJson = response.getString("game");
 
@@ -209,20 +164,11 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
                 );"""
     };
 
+    // 这里同样删除了 executeUpdate 方法
+
     @Override
     public void configureDatabase() throws ServerException, DataAccessException {
-        DatabaseManager.createDatabase();
-        try (var conn = DatabaseManager.getConnection()) {
-            for (var statement : createStatements) {
-                try (var preparedStatement = conn.prepareStatement(statement)) {
-                    preparedStatement.executeUpdate();
-                }
-            }
-        } catch (SQLException e) {
-            throw new ServerException(e.getMessage());
-        } catch (DataAccessException e) {
-            throw new ServerException(e.getMessage());
-        }
-
+        // 直接调用接口里写好的默认逻辑
+        configureDatabase(createStatements);
     }
 }
