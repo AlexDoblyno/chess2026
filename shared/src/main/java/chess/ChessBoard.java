@@ -14,10 +14,8 @@ public class ChessBoard {
     private final ChessPiece[][] GameBoard;
 
     public ChessBoard() {
-
         GameBoard = new ChessPiece[8][8]; //创建8x8棋盘方块
     }
-
 
     /**
      * Adds a chess piece to the chessboard
@@ -74,7 +72,7 @@ public class ChessBoard {
         }
     }
     //将NullRoll改为Nullspaces
-     //这里没有改7/7
+    //这里没有改7/7
     private void setPawnRow(int row, ChessGame.TeamColor teamColor) {
         for (int col = 1; col <= 8; col++){
             addPiece(new ChessPosition(row, col), new ChessPiece(teamColor, ChessPiece.PieceType.PAWN));
@@ -102,49 +100,9 @@ public class ChessBoard {
             }
         }
     }
-    public void printBoard() {
-        for (int temprow = 0; temprow < 8; temprow++){
-            for (int tempcol = 0; tempcol < 8; tempcol++) {
-                if (GameBoard[temprow][tempcol] != null) {
-                    ChessPiece selectedPiece = GameBoard[temprow][tempcol];
-                    printPiece(selectedPiece);
-                }
-                else {
-                    System.out.print("[   ]");
-                }
-            }
-            System.out.println();
-        }
-    } //打印期盼
-    private void printPiece(ChessPiece selectedPiece){
-        if (selectedPiece.getTeamColor() == ChessGame.TeamColor.BLACK) {
-            System.out.print("[B");
-        }
-        else {
-            System.out.print("[W");
-        } //黑与白色前缀
-        if (selectedPiece.getPieceType() == ChessPiece.PieceType.PAWN) {
-            System.out.print("P]");
-        }
-        else if (selectedPiece.getPieceType() == ChessPiece.PieceType.ROOK) {
-            System.out.print("R]");
-        }
-        else if (selectedPiece.getPieceType() == ChessPiece.PieceType.KNIGHT) {
-            System.out.print("Kng]");
-        }
-        else if (selectedPiece.getPieceType() == ChessPiece.PieceType.BISHOP) {
-            System.out.print("B]");
-        }
-        else if (selectedPiece.getPieceType() == ChessPiece.PieceType.QUEEN) {
-            System.out.print("Q]");
-        }
-        else if (selectedPiece.getPieceType() == ChessPiece.PieceType.KING) {
-            System.out.print("K]");
-        }
-        else {
-            System.out.print(" ]");
-        }
-    }
+
+    // 【修改说明】：在这里完全删除了未使用的 printBoard() 及其配套的 printPiece() 方法
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -161,4 +119,3 @@ public class ChessBoard {
         return Arrays.deepHashCode(GameBoard);
     }
 }
-
