@@ -69,13 +69,13 @@ public class ChessClient {
     }
 
     // parameters only need to be a game name. AuthToken is stored in the DataCache.
+// parameters only need to be a game name. AuthToken is stored in the DataCache.
     public String createGame(String... parameters) throws ResponseException {
 
         int gameID = server.createGame(dataCache.getAuthToken(), parameters[0]);
 
-        // Create string display result using StringBuilder
-        StringBuilder resultString = new StringBuilder();
-        return "Successful game creation with ID " + gameID;
+        // 【修改这里】：不打印 gameID，只打印成功的提示和游戏房间名
+        return "Successfully created game room: " + parameters[0];
     }
 
     // parameters[1] is the team color, and parameters[2] is the gameID

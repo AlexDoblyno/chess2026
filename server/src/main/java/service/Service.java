@@ -152,20 +152,23 @@ public class Service {
         }
         try {
             AuthTokenData authData = authDataAccess.getAuthData(authToken);
-            if (authData != null) {
-                if (gameDataAccess.getGameByName(gameName) == null) {
-                    ChessGame newGame = new ChessGame();
-                    int gameID = generateGameID();
-                    while (gameDataAccess.getGameByID(gameID) != null) {
-                        gameID = generateGameID();
-                    }
-                    GameData newGameData = new GameData(gameID, null, null, gameName, newGame);
-                    gameDataAccess.createGame(newGameData);
-                    return gameID;
-                }
-                throw new ServerException("already taken", 403);
+            if (authData == null) {
+                throw new ServerException("Error: Unauthorized", 401);
             }
-            throw new ServerException("Error: Unauthorized", 401);
+
+            // 【修改点】：直接删除了通过 gameName 查重的逻辑，现在只要 AuthToken 合法就可以创建同名游戏
+            ChessGame newGame = new ChessGame();
+            int gameID = generateGameID();
+            // 确保生成的 gameID 不重复
+            while (gameDataAccess.getGameByID(gameID) != null) {
+                gameID = generateGameID();
+            }
+
+            GameData newGameData = new GameData(gameID, null, null, gameName, newGame);
+            gameDataAccess.createGame(newGameData);
+
+            return gameID;
+
         } catch (dataaccess.ServerException e) {
             if(e.getMessage().contains("Authentication token not found")) {
                 throw new ServerException("Error: Unauthorized", 401);
@@ -248,7 +251,8 @@ public class Service {
             if (e.getMessage().contains("not found")) {
                 return authToken;
             } else {
-                new ServerException(e.getMessage(), 500);
+                // 【修改点】：补全了漏掉的 throw 关键字
+                throw new ServerException(e.getMessage(), 500);
             }
         }
         return authToken;
