@@ -11,17 +11,20 @@ import models.UserData;
 import chess.ChessGame;
 import com.google.gson.JsonSyntaxException;
 import service.Service;
-import spark.*;
 import com.google.gson.Gson;
+
+import io.javalin.Javalin;
+import io.javalin.http.Context;
+import io.javalin.http.staticfiles.Location;
 
 import java.util.Collection;
 import java.util.Map;
 
 public class Server {
 
-    // Create a single Gson object for all Gson operations
     private final Gson gson = new Gson();
     private final Service service;
+    private Javalin app; // 声明 Javalin 实例，方便后续在 stop() 中调用
 
     public Server() {
         service = new Service();
@@ -29,270 +32,205 @@ public class Server {
     }
 
     public int run(int desiredPort) {
-        Spark.port(desiredPort);
+        // 初始化 Javalin 并配置静态文件
+        app = Javalin.create(config -> {
+            config.staticFiles.add("web", Location.CLASSPATH);
+        }).start(desiredPort);
 
-        Spark.staticFiles.location("web");
+        // 注册 endpoints
+        app.post("/user", this::registerUser);
+        app.post("/session", this::loginUser);
+        app.delete("/session", this::logoutUser);
+        app.get("/game", this::listGame);
+        app.post("/game", this::createGame);
+        app.put("/game", this::joinGame);
+        app.delete("/db", this::clearDatabase);
 
-        // Register your endpoints and handle exceptions here.
-        Spark.post("/user", this::registerUser);
-        Spark.post("/session", this::loginUser);
-        Spark.delete("/session", this::logoutUser);
-        Spark.get("/game", this::listGame);
-        Spark.post("/game", this::createGame);
-        Spark.put("/game", this::joinGame);
-        Spark.delete("/db", this::clearDatabase);
+        // 注册异常处理
+        app.exception(ServerException.class, this::handleException);
+        app.exception(Exception.class, this::handleException); // 捕获所有未被处理的其他异常
 
-        Spark.exception(ServerException.class, this::handleException);
-
-        //This line initializes the server and can be removed once you have a functioning endpoint
-        Spark.init();
-
-        Spark.awaitInitialization();
-        return Spark.port();
+        return app.port();
     }
-
 
     /**
      * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
      * into the server's database.
-     * @param request is the JSON request to register a user. Contains username, password, and email.
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @return the AuthTokenData object, serialized as a JSON object.
      */
-    private String registerUser(Request request, Response response) {
+    private void registerUser(Context ctx) {
         try {
             // Store the user data from the request
-            UserData submittedUser = gson.fromJson(request.body(), UserData.class);
-
-            // 预先检查，避免 NullPointerException
-            if (submittedUser == null || !validateInput(submittedUser.username()) || !validateInput(submittedUser.password()) || !validateEmail(submittedUser.email())) {
-                throw new ServerException("Error: bad request", 400);
-            }
+            UserData submittedUser = gson.fromJson(ctx.body(), UserData.class);
 
             // Trim the username
             String trimmedUsername = submittedUser.username().trim();
             UserData user = new UserData(trimmedUsername, submittedUser.password(), submittedUser.email());
 
-            // Register user data
-            AuthTokenData authToken;
-            try {
-                authToken = service.register(user);
-            } catch (ServerException e) {
-                response.status(e.getStatusCode());
-                throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
+            // Verify inputs
+            if (!validateInput(user.username()) || !validateInput(user.password()) || !validateEmail(user.email())) {
+                throw new ServerException("Error: bad request", 400);
             }
-            response.status(200);
-            return gson.toJson(authToken);
+
+            // Register user data
+            AuthTokenData authToken = service.register(user);
+            ctx.status(200);
+            ctx.result(gson.toJson(authToken));
 
         } catch (JsonSyntaxException e) {
-            // Handle invalid JSON structure
-            return createErrorResponse(response, "Error: bad request", 400);
-
+            e.printStackTrace();
+            createErrorResponse(ctx, "Error! bad request", 400);
         } catch (ServerException e) {
-            // Handle ServerException and create a meaningful response
-            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
+            e.printStackTrace();
+            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
         }
     }
 
-    // 添加一个通用的方法来创建错误响应
-    private String createErrorResponse(Response response, String errorMessage, int statusCode) {
-        response.status(statusCode);
-        return gson.toJson(new MessageResponse(errorMessage)); // 构建错误信息的 JSON 响应
+    // 通用的方法来创建错误响应
+    private void createErrorResponse(Context ctx, String errorMessage, int statusCode) {
+        ctx.status(statusCode);
+        ctx.result(gson.toJson(new MessageResponse(errorMessage)));
     }
 
     /**
      * loginUser will attempt to log in the user given a username and password.
-     * @param request is the JSON request to register a user. Contains username and password.
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @return the AuthTokenData object, serialized as a JSON object.
-     * @throws ServerException
      */
-    private String loginUser(Request request, Response response) throws ServerException {
-        /**
-         * Small record class specifically for deserializing the login request
-         */
+    private void loginUser(Context ctx) throws ServerException {
         record UserLoginCredentials(String username, String password) {}
 
-        // Store the credentials from the request
-        UserLoginCredentials userLogin = gson.fromJson(request.body(), UserLoginCredentials.class);
-        if (userLogin == null || !validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
-            throw new ServerException("Error: bad request", 400);
+        UserLoginCredentials userLogin = gson.fromJson(ctx.body(), UserLoginCredentials.class);
+        if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
+            throw new ServerException("bad request", 400);
         }
-
-        String username = userLogin.username;
-        String password = userLogin.password;
 
         try {
-            AuthTokenData authToken = service.login(username, password);
-            response.status(200);
-            return gson.toJson(authToken);
+            AuthTokenData authToken = service.login(userLogin.username(), userLogin.password());
+            ctx.status(200);
+            ctx.result(gson.toJson(authToken));
         } catch(ServerException e) {
-            response.status(e.getStatusCode());
-            response.body(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
-            return response.body();
+            ctx.status(e.getStatusCode());
+            ctx.result(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
         }
-
     }
 
     /**
      * logoutUser will attempt to log out the user given the session's authtoken.
-     * @param request contains the authToken we are seeking to remove
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @throws ServerException
      */
-    private Object logoutUser(Request request, Response response) throws ServerException {
-        String authToken = request.headers("authorization");
+    private void logoutUser(Context ctx) throws ServerException {
+        String authToken = ctx.header("authorization");
 
-        try{
+        try {
             service.logOut(authToken);
+            ctx.status(200);
+            ctx.result("");
         } catch (ServerException e) {
-            response.status(e.getStatusCode());
-            return createErrorResponse(response, "Error: " + e.getMessage(), e.getStatusCode());
+            e.printStackTrace();
+            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
         }
-        response.status(200);
-        return "";
     }
 
     /**
      * listGame will return a list of all current games in the database
-     * @param request contains the current user's authToken
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @return the list of games in the database
-     * @throws ServerException 401
      */
-    private String listGame(Request request, Response response) throws ServerException {
-        String authToken = request.headers("authorization");
-        Collection<GameData> gameList;
+    private void listGame(Context ctx) throws ServerException {
+        String authToken = ctx.header("authorization");
         try {
-            gameList = service.listGames(authToken);
+            Collection<GameData> gameList = service.listGames(authToken);
+            ctx.status(200);
+            Map<String, Object> jsonMap = Map.of("games", gameList);
+            ctx.result(gson.toJson(jsonMap));
         } catch (ServerException e) {
             throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
         }
-        response.status(200);
-        Map<String, Object> jsonMap = Map.of("games", gameList);
-        return gson.toJson(jsonMap);
     }
 
     /**
      * createGame will create a new GameData object in the database.
-     * @param request contains the user's authToken and the name of the game object they want to create.
-     * @param response is the resulting response JSON object along with the serialized return information
-     * @return the gameID of the new game object
-     * @throws ServerException 400, 401
      */
-    private String createGame(Request request, Response response) throws ServerException {
-        Map<String, String> requestBody = gson.fromJson(request.body(), Map.class);
-        String authToken = request.headers("authorization");
-        String gameName = requestBody != null ? requestBody.get("gameName") : null;
+    private void createGame(Context ctx) throws ServerException {
+        Map<String, String> requestBody = gson.fromJson(ctx.body(), Map.class);
+        String authToken = ctx.header("authorization");
+        String gameName = requestBody.get("gameName");
 
-        if (gameName == null || gameName.isEmpty()) {
-            throw new ServerException("Error: bad request", 400);
+        try {
+            int gameID = service.createGame(authToken, gameName);
+            ctx.status(200);
+            Map<String, Integer> jsonMap = Map.of("gameID", gameID);
+            ctx.result(gson.toJson(jsonMap));
+        } catch (ServerException e) {
+            createErrorResponse(ctx, e.getMessage(), e.getStatusCode());
         }
-
-        int gameID;
-        try{
-            gameID = service.createGame(authToken, gameName);
-        }catch (ServerException e){
-            response.status(e.getStatusCode());
-            return createErrorResponse(response, "Error: " + e.getMessage(), e.getStatusCode());
-        }
-        response.status(200);
-        Map<String, Integer> jsonMap = Map.of("gameID", gameID);
-        return gson.toJson(jsonMap);
     }
 
     /**
      * joinGame will add a user to an existing GameData object in the database.
-     * @param request contains the authData, playerColor and gameID
-     * @param response contains only the success code (or error message).
      */
-    private Object joinGame(Request request, Response response) throws ServerException {
-        Map<String, Object> requestBody = gson.fromJson(request.body(), Map.class);
-        ChessGame.TeamColor teamColor;
+    private void joinGame(Context ctx) throws ServerException {
+        Map<String, Object> requestBody = gson.fromJson(ctx.body(), Map.class);
+        String authData = ctx.header("authorization");
 
-        String authData = request.headers("authorization");
+        if (validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
+            ChessGame.TeamColor teamColor;
+            String colorStr = (String) requestBody.get("playerColor");
 
-        if (requestBody != null && validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
-            String colorString = (String) requestBody.get("playerColor");
-            if (colorString.equalsIgnoreCase("WHITE")) {
+            if (colorStr.equalsIgnoreCase("WHITE")) {
                 teamColor = ChessGame.TeamColor.WHITE;
-            } else if (colorString.equalsIgnoreCase("BLACK")){
+            } else if (colorStr.equalsIgnoreCase("BLACK")){
                 teamColor = ChessGame.TeamColor.BLACK;
-            } else if (colorString.equalsIgnoreCase("OBSERVE")){
-                teamColor = ChessGame.TeamColor.OBSERVE;
             } else {
-                throw new ServerException("Error: bad request", 400);
+                throw new ServerException("bad request", 400);
             }
+
             double gameIDDouble = (double) requestBody.get("gameID");
             int gameID = (int) gameIDDouble;
 
             service.joinGame(authData, teamColor, gameID);
-            response.status(200);
+            ctx.status(200);
+            ctx.result("");
+        } else {
+            throw new ServerException("bad request", 400);
         }
-        else {
-            throw new ServerException("Error: bad request", 400);
-        }
-        return "";
     }
 
     /**
-     * clearDatabase will clear the database. I'm sure that doesn't come as a shock to you.
-     * @param request contains really nothing as far as I could understand
-     * @param response contains nothing but the success code, exception info, and my feelings of resignation at
-     *                 having to make these large comment headers for every function (it's good practice)
+     * clearDatabase will clear the database.
      */
-    private Object clearDatabase(Request request, Response response) throws ServerException {
+    private void clearDatabase(Context ctx) throws ServerException {
         service.clearApp();
-        response.status(200);
-        return "";
+        ctx.status(200);
+        ctx.result("");
     }
 
     /**
      * Method to handle exceptions
-     * @param e is the exception
-     * @param request is the request
-     * @param response is the response
      */
-    private void handleException(Exception e, Request request, Response response) {
+    private void handleException(Exception e, Context ctx) {
         int statusCode;
         String errorMessage;
 
         if (e instanceof ServerException serverException) {
             statusCode = serverException.getStatusCode();
-            errorMessage = e.getMessage().startsWith("Error") ? e.getMessage() : "Error: " + e.getMessage();
-        }
-        else {
+            errorMessage = "Error: " + e.getMessage();
+        } else {
             statusCode = 500;
             errorMessage = "Error: " + e.getMessage();
         }
 
-        response.status(statusCode);
-        response.type("application/json");
-        response.body(gson.toJson(new MessageResponse(errorMessage)));
+        MessageResponse messageResponse = new MessageResponse(errorMessage);
+        ctx.status(statusCode);
+        ctx.contentType("application/json");
+        ctx.result(gson.toJson(messageResponse));
     }
 
-    /**
-     * validateUsername will check to see if an input string is null or empty.
-     * @param input The input to check validity of
-     * @return true if the input is valid
-     */
     private Boolean validateInput(String input) {
         return input != null && !input.isEmpty();
     }
 
-    /**
-     * validateEmail will make sure that the submitted email follows correct email format.
-     * We use a regex function to accomplish this.
-     * @param email is the email to check
-     * @return true if the email is valid
-     */
     private Boolean validateEmail(String email) {
         return email != null;
     }
 
     private void initializeDatabase() {
         try {
-            // User data initialized first
             SqlUserDataAccess userDataAccess = new SqlUserDataAccess();
             userDataAccess.configureDatabase();
 
@@ -301,15 +239,15 @@ public class Server {
 
             authDataAccess.configureDatabase();
             gameDataAccess.configureDatabase();
-        } catch (dataaccess.ServerException e) {
+        } catch (dataaccess.ServerException | DataAccessException e) {
             throw new RuntimeException("Database initialization failed: " + e.getMessage());
-        } catch (DataAccessException e) {
-            throw new RuntimeException(e);
         }
     }
 
     public void stop() {
-        Spark.stop();
-        Spark.awaitStop();
+        if (app != null) {
+            app.stop();
+        }
     }
 }
+//总共修改javalin，不知道test有没有问题，先提交
