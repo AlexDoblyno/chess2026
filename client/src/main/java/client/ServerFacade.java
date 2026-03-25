@@ -51,8 +51,8 @@ public class ServerFacade {
         var path = "/game";
         var requestBody = Map.of("gameName", gameName);
         // int 响应转换记录
-        record createdGame(int gameID) {}
-        return this.makeRequest("POST", path, requestBody, createdGame.class, authToken).gameID;
+        record CreatedGame(int gameID) {}
+        return this.makeRequest("POST", path, requestBody, CreatedGame.class, authToken).gameID;
     }
 
     public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ResponseException {

@@ -68,7 +68,7 @@ public class ChessGame {
             if (previousMove != null) {
 
                 // Check for en passant
-                if (EnPassantCheck(startPosition)) {
+                if (enPassantCheck(startPosition)) {
                     ChessPosition endPosition = new ChessPosition(
                             previousMove.getEndPosition().getRow() + playDirection(),
                             previousMove.getEndPosition().getColumn());
@@ -148,7 +148,7 @@ public class ChessGame {
      * @param startPosition is the position our chess piece is at. It may or may not be a pawn.
      * @return false if there is no possible en passant open
      */
-    private boolean EnPassantCheck (ChessPosition startPosition) {
+    private boolean enPassantCheck(ChessPosition startPosition) {
         if (previousMove != null) {
             ChessPiece checkPiece = GameBoard.getPiece(previousMove.getEndPosition());
             int previousMoveRow = previousMove.getEndPosition().getRow();
@@ -260,7 +260,7 @@ public class ChessGame {
             GameBoard.addPiece(move.getEndPosition(), movePiece);
 
             // Check for en passant
-            if (previousMove != null && EnPassantCheck(move.getStartPosition())) {
+            if (previousMove != null && enPassantCheck(move.getStartPosition())) {
                 makeEnPassant(move, directCapture);
             }
 
