@@ -14,6 +14,10 @@ public class MemoryAuthDataAccess implements AuthDataAccess{
 
     @Override
     public void addAuthData(AuthTokenData authData) {
+        // 加上这个 null 检查，主动抛出异常，满足测试用例的期望！
+        if (authData == null) {
+            throw new NullPointerException("AuthTokenData cannot be null");
+        }
         authTokenDatabase.add(authData);
     }
 
