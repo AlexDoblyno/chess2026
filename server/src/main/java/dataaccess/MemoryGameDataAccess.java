@@ -16,10 +16,7 @@ public class MemoryGameDataAccess implements GameDataAccess {
 
     @Override
     public Collection<GameData> getGameList() {
-//        Collection<String> gameList = new HashSet<String>();
-//        for (GameData game : gameDatabase) {
-//            gameList.add(game.gameName());
-//        }
+
         return gameDatabase;
     }
 
