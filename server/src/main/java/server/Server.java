@@ -58,42 +58,39 @@ public class Server {
      * @param request is the JSON request to register a user. Contains username, password, and email.
      * @param response is the resulting response JSON object along with the serialized return information
      * @return the AuthTokenData object, serialized as a JSON object.
-     * @throws ServerException
      */
     private String registerUser(Request request, Response response) {
         try {
             // Store the user data from the request
-            UserData submittedUser = new Gson().fromJson(request.body(), UserData.class);
+            UserData submittedUser = gson.fromJson(request.body(), UserData.class);
+
+            // 预先检查，避免 NullPointerException
+            if (submittedUser == null || !validateInput(submittedUser.username()) || !validateInput(submittedUser.password()) || !validateEmail(submittedUser.email())) {
+                throw new ServerException("Error: bad request", 400);
+            }
 
             // Trim the username
             String trimmedUsername = submittedUser.username().trim();
             UserData user = new UserData(trimmedUsername, submittedUser.password(), submittedUser.email());
 
-            // Verify inputs
-            if (!validateInput(user.username()) || !validateInput(user.password()) || !validateEmail(user.email())) {
-                throw new ServerException("Error: bad request", 400);
-            }
-
             // Register user data
-            AuthTokenData authToken = null;
+            AuthTokenData authToken;
             try {
                 authToken = service.register(user);
             } catch (ServerException e) {
                 response.status(e.getStatusCode());
-                    throw new ServerException("error| "+e.getMessage(),e.getStatusCode());
+                throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
             }
             response.status(200);
             return gson.toJson(authToken);
 
         } catch (JsonSyntaxException e) {
             // Handle invalid JSON structure
-            e.printStackTrace(); // 打印日志
-            return createErrorResponse(response, "Error! bad request", 400);
+            return createErrorResponse(response, "Error: bad request", 400);
 
         } catch (ServerException e) {
             // Handle ServerException and create a meaningful response
-            e.printStackTrace();
-            return createErrorResponse(response, "error| "+e.getMessage(), e.getStatusCode());
+            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
         }
     }
 
@@ -117,9 +114,9 @@ public class Server {
         record UserLoginCredentials(String username, String password) {}
 
         // Store the credentials from the request
-        UserLoginCredentials userLogin = new Gson().fromJson(request.body(), UserLoginCredentials.class);
-        if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
-            throw new ServerException("bad request", 400);
+        UserLoginCredentials userLogin = gson.fromJson(request.body(), UserLoginCredentials.class);
+        if (userLogin == null || !validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
+            throw new ServerException("Error: bad request", 400);
         }
 
         String username = userLogin.username;
@@ -149,9 +146,8 @@ public class Server {
         try{
             service.logOut(authToken);
         } catch (ServerException e) {
-            e.printStackTrace();
             response.status(e.getStatusCode());
-            return createErrorResponse(response, "error| "+ e.getMessage(), e.getStatusCode());
+            return createErrorResponse(response, "Error: " + e.getMessage(), e.getStatusCode());
         }
         response.status(200);
         return "";
@@ -166,7 +162,7 @@ public class Server {
      */
     private String listGame(Request request, Response response) throws ServerException {
         String authToken = request.headers("authorization");
-        Collection<GameData> gameList = null;
+        Collection<GameData> gameList;
         try {
             gameList = service.listGames(authToken);
         } catch (ServerException e) {
@@ -187,14 +183,18 @@ public class Server {
     private String createGame(Request request, Response response) throws ServerException {
         Map<String, String> requestBody = gson.fromJson(request.body(), Map.class);
         String authToken = request.headers("authorization");
-        String gameName = requestBody.get("gameName");
+        String gameName = requestBody != null ? requestBody.get("gameName") : null;
+
+        if (gameName == null || gameName.isEmpty()) {
+            throw new ServerException("Error: bad request", 400);
+        }
 
         int gameID;
         try{
             gameID = service.createGame(authToken, gameName);
         }catch (ServerException e){
             response.status(e.getStatusCode());
-            return createErrorResponse(response, e.getMessage(), e.getStatusCode());
+            return createErrorResponse(response, "Error: " + e.getMessage(), e.getStatusCode());
         }
         response.status(200);
         Map<String, Integer> jsonMap = Map.of("gameID", gameID);
@@ -209,21 +209,19 @@ public class Server {
     private Object joinGame(Request request, Response response) throws ServerException {
         Map<String, Object> requestBody = gson.fromJson(request.body(), Map.class);
         ChessGame.TeamColor teamColor;
-        String authData;
-//commit
-        // Assign variables for our Service function call
-        authData = request.headers("authorization");
 
-        if (validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
-            if (((String) requestBody.get("playerColor")).equalsIgnoreCase("WHITE")) {
+        String authData = request.headers("authorization");
+
+        if (requestBody != null && validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
+            String colorString = (String) requestBody.get("playerColor");
+            if (colorString.equalsIgnoreCase("WHITE")) {
                 teamColor = ChessGame.TeamColor.WHITE;
-            } else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("BLACK")){
+            } else if (colorString.equalsIgnoreCase("BLACK")){
                 teamColor = ChessGame.TeamColor.BLACK;
-            }else if (((String) requestBody.get("playerColor")).equalsIgnoreCase("OBSERVE")){
+            } else if (colorString.equalsIgnoreCase("OBSERVE")){
                 teamColor = ChessGame.TeamColor.OBSERVE;
-            }
-            else {
-                throw new ServerException("bad request", 400);
+            } else {
+                throw new ServerException("Error: bad request", 400);
             }
             double gameIDDouble = (double) requestBody.get("gameID");
             int gameID = (int) gameIDDouble;
@@ -232,7 +230,7 @@ public class Server {
             response.status(200);
         }
         else {
-            throw new ServerException("bad request", 400);
+            throw new ServerException("Error: bad request", 400);
         }
         return "";
     }
@@ -258,22 +256,19 @@ public class Server {
     private void handleException(Exception e, Request request, Response response) {
         int statusCode;
         String errorMessage;
-        MessageResponse messageResponse;
 
         if (e instanceof ServerException serverException) {
-            statusCode = ((ServerException) e).getStatusCode();
-            errorMessage = "Error: " + e.getMessage();
-            messageResponse = new MessageResponse(errorMessage);
+            statusCode = serverException.getStatusCode();
+            errorMessage = e.getMessage().startsWith("Error") ? e.getMessage() : "Error: " + e.getMessage();
         }
         else {
             statusCode = 500;
             errorMessage = "Error: " + e.getMessage();
-            messageResponse = new MessageResponse(errorMessage);
         }
 
         response.status(statusCode);
         response.type("application/json");
-        response.body(gson.toJson(messageResponse));
+        response.body(gson.toJson(new MessageResponse(errorMessage)));
     }
 
     /**
@@ -292,12 +287,6 @@ public class Server {
      * @return true if the email is valid
      */
     private Boolean validateEmail(String email) {
-        // EMAIL_REGEX constant was written by amittn on Stack Overflow, with minor changes
-        // https://stackoverflow.com/questions/58189908/regex-for-email-validation-including-blank-field-valid-as-well
-//        final String EMAIL_REGEX = "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
-//        final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
-
-        //            return EMAIL_PATTERN.matcher(email).matches();
         return email != null;
     }
 
