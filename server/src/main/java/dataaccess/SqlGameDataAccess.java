@@ -101,11 +101,31 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     @Override
     public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
+
+            // 🌟 新增逻辑：在加入之前，先把该玩家从这个游戏的白方或黑方位置上清理掉（实现换边）
+            String removeWhite = "UPDATE GameData SET whiteUsername = NULL WHERE gameID = ? AND whiteUsername = ?";
+            try (var ps = conn.prepareStatement(removeWhite)) {
+                ps.setInt(1, gameID);
+                ps.setString(2, authData.username());
+                ps.executeUpdate();
+            }
+
+            String removeBlack = "UPDATE GameData SET blackUsername = NULL WHERE gameID = ? AND blackUsername = ?";
+            try (var ps = conn.prepareStatement(removeBlack)) {
+                ps.setInt(1, gameID);
+                ps.setString(2, authData.username());
+                ps.executeUpdate();
+            }
+
+            // 原始逻辑：将玩家加入指定的队伍
             String join = null;
             if (team == ChessGame.TeamColor.WHITE) {
                 join = "UPDATE GameData SET whiteUsername = ? WHERE gameID = ? AND whiteUsername IS NULL";
             } else if (team == ChessGame.TeamColor.BLACK){
                 join = "UPDATE GameData SET blackUsername = ? WHERE gameID = ? AND blackUsername IS NULL";
+            } else {
+                // 如果是 OBSERVE (观战)，不需要在数据库里占座，直接返回即可
+                return;
             }
 
             try (var preparedStatement = conn.prepareStatement(join)) {
