@@ -46,7 +46,7 @@ public class Server {
         app.put("/game", this::joinGame);
         app.delete("/db", this::clearDatabase);
 
-        // 注册异常处理
+        // 注册异常处理（所有抛出的 ServerException 都会走到这里统一处理）
         app.exception(ServerException.class, this::handleException);
         app.exception(Exception.class, this::handleException); // 捕获所有未被处理的其他异常
 
@@ -57,38 +57,32 @@ public class Server {
      * registerUser takes the request JSON object, then makes it usable for Java. It then registers the user
      * into the server's database.
      */
-    private void registerUser(Context ctx) {
+    private void registerUser(Context ctx) throws ServerException {
         try {
             // Store the user data from the request
             UserData submittedUser = gson.fromJson(ctx.body(), UserData.class);
 
-            // Trim the username
+            // 1. 先验证对象是否为空，以及字段是否合法。防止 NullPointerException
+            if (submittedUser == null ||
+                    !validateInput(submittedUser.username()) ||
+                    !validateInput(submittedUser.password()) ||
+                    !validateEmail(submittedUser.email())) {
+                throw new ServerException("bad request", 400);
+            }
+
+            // 2. 验证通过后，再安全地进行 trim 操作
             String trimmedUsername = submittedUser.username().trim();
             UserData user = new UserData(trimmedUsername, submittedUser.password(), submittedUser.email());
 
-            // Verify inputs
-            if (!validateInput(user.username()) || !validateInput(user.password()) || !validateEmail(user.email())) {
-                throw new ServerException("Error: bad request", 400);
-            }
-
-            // Register user data
+            // 3. 注册用户并返回 AuthToken
             AuthTokenData authToken = service.register(user);
             ctx.status(200);
             ctx.result(gson.toJson(authToken));
 
         } catch (JsonSyntaxException e) {
-            e.printStackTrace();
-            createErrorResponse(ctx, "Error! bad request", 400);
-        } catch (ServerException e) {
-            e.printStackTrace();
-            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
+            // 捕获 JSON 解析错误
+            throw new ServerException("bad request", 400);
         }
-    }
-
-    // 通用的方法来创建错误响应
-    private void createErrorResponse(Context ctx, String errorMessage, int statusCode) {
-        ctx.status(statusCode);
-        ctx.result(gson.toJson(new MessageResponse(errorMessage)));
     }
 
     /**
@@ -97,18 +91,20 @@ public class Server {
     private void loginUser(Context ctx) throws ServerException {
         record UserLoginCredentials(String username, String password) {}
 
-        UserLoginCredentials userLogin = gson.fromJson(ctx.body(), UserLoginCredentials.class);
-        if (!validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
-            throw new ServerException("bad request", 400);
-        }
-
         try {
+            UserLoginCredentials userLogin = gson.fromJson(ctx.body(), UserLoginCredentials.class);
+
+            // 检查 null 以防止空请求体导致崩溃
+            if (userLogin == null || !validateInput(userLogin.username()) || !validateInput(userLogin.password())) {
+                throw new ServerException("bad request", 400);
+            }
+
             AuthTokenData authToken = service.login(userLogin.username(), userLogin.password());
             ctx.status(200);
             ctx.result(gson.toJson(authToken));
-        } catch(ServerException e) {
-            ctx.status(e.getStatusCode());
-            ctx.result(gson.toJson(new MessageResponse("Error: " + e.getMessage())));
+
+        } catch (JsonSyntaxException e) {
+            throw new ServerException("bad request", 400);
         }
     }
 
@@ -118,14 +114,11 @@ public class Server {
     private void logoutUser(Context ctx) throws ServerException {
         String authToken = ctx.header("authorization");
 
-        try {
-            service.logOut(authToken);
-            ctx.status(200);
-            ctx.result("");
-        } catch (ServerException e) {
-            e.printStackTrace();
-            createErrorResponse(ctx, "error| " + e.getMessage(), e.getStatusCode());
-        }
+        // 这里的 service.logOut 如果遇到无效 token 应该抛出 ServerException(401)
+        // 会被底部的 handleException 自动捕获
+        service.logOut(authToken);
+        ctx.status(200);
+        ctx.result("");
     }
 
     /**
@@ -133,31 +126,35 @@ public class Server {
      */
     private void listGame(Context ctx) throws ServerException {
         String authToken = ctx.header("authorization");
-        try {
-            Collection<GameData> gameList = service.listGames(authToken);
-            ctx.status(200);
-            Map<String, Object> jsonMap = Map.of("games", gameList);
-            ctx.result(gson.toJson(jsonMap));
-        } catch (ServerException e) {
-            throw new ServerException("Error: " + e.getMessage(), e.getStatusCode());
-        }
+
+        Collection<GameData> gameList = service.listGames(authToken);
+        ctx.status(200);
+        Map<String, Object> jsonMap = Map.of("games", gameList);
+        ctx.result(gson.toJson(jsonMap));
     }
 
     /**
      * createGame will create a new GameData object in the database.
      */
     private void createGame(Context ctx) throws ServerException {
-        Map<String, String> requestBody = gson.fromJson(ctx.body(), Map.class);
-        String authToken = ctx.header("authorization");
-        String gameName = requestBody.get("gameName");
-
         try {
+            Map<String, String> requestBody = gson.fromJson(ctx.body(), Map.class);
+            String authToken = ctx.header("authorization");
+
+            // 检查请求体是否为空
+            if (requestBody == null || !validateInput(requestBody.get("gameName"))) {
+                throw new ServerException("bad request", 400);
+            }
+
+            String gameName = requestBody.get("gameName");
             int gameID = service.createGame(authToken, gameName);
+
             ctx.status(200);
             Map<String, Integer> jsonMap = Map.of("gameID", gameID);
             ctx.result(gson.toJson(jsonMap));
-        } catch (ServerException e) {
-            createErrorResponse(ctx, e.getMessage(), e.getStatusCode());
+
+        } catch (JsonSyntaxException e) {
+            throw new ServerException("bad request", 400);
         }
     }
 
@@ -165,28 +162,33 @@ public class Server {
      * joinGame will add a user to an existing GameData object in the database.
      */
     private void joinGame(Context ctx) throws ServerException {
-        Map<String, Object> requestBody = gson.fromJson(ctx.body(), Map.class);
-        String authData = ctx.header("authorization");
+        try {
+            Map<String, Object> requestBody = gson.fromJson(ctx.body(), Map.class);
+            String authData = ctx.header("authorization");
 
-        if (validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
-            ChessGame.TeamColor teamColor;
-            String colorStr = (String) requestBody.get("playerColor");
+            // 检查请求体和必须的字段
+            if (requestBody != null && validateInput((String)requestBody.get("playerColor")) && requestBody.get("gameID") != null) {
+                ChessGame.TeamColor teamColor;
+                String colorStr = (String) requestBody.get("playerColor");
 
-            if (colorStr.equalsIgnoreCase("WHITE")) {
-                teamColor = ChessGame.TeamColor.WHITE;
-            } else if (colorStr.equalsIgnoreCase("BLACK")){
-                teamColor = ChessGame.TeamColor.BLACK;
+                if (colorStr.equalsIgnoreCase("WHITE")) {
+                    teamColor = ChessGame.TeamColor.WHITE;
+                } else if (colorStr.equalsIgnoreCase("BLACK")){
+                    teamColor = ChessGame.TeamColor.BLACK;
+                } else {
+                    throw new ServerException("bad request", 400);
+                }
+
+                double gameIDDouble = (double) requestBody.get("gameID");
+                int gameID = (int) gameIDDouble;
+
+                service.joinGame(authData, teamColor, gameID);
+                ctx.status(200);
+                ctx.result("");
             } else {
                 throw new ServerException("bad request", 400);
             }
-
-            double gameIDDouble = (double) requestBody.get("gameID");
-            int gameID = (int) gameIDDouble;
-
-            service.joinGame(authData, teamColor, gameID);
-            ctx.status(200);
-            ctx.result("");
-        } else {
+        } catch (JsonSyntaxException | ClassCastException e) {
             throw new ServerException("bad request", 400);
         }
     }
@@ -201,7 +203,7 @@ public class Server {
     }
 
     /**
-     * Method to handle exceptions
+     * 统一处理所有的异常并返回标准化 JSON
      */
     private void handleException(Exception e, Context ctx) {
         int statusCode;
@@ -209,10 +211,16 @@ public class Server {
 
         if (e instanceof ServerException serverException) {
             statusCode = serverException.getStatusCode();
-            errorMessage = "Error: " + e.getMessage();
+            errorMessage = e.getMessage();
         } else {
             statusCode = 500;
-            errorMessage = "Error: " + e.getMessage();
+            errorMessage = e.getMessage();
+            e.printStackTrace(); // 打印 500 错误的堆栈方便调试
+        }
+
+        // 确保错误信息以 "Error: " 开头（如果抛出时没写的话）
+        if (!errorMessage.toLowerCase().startsWith("error")) {
+            errorMessage = "Error: " + errorMessage;
         }
 
         MessageResponse messageResponse = new MessageResponse(errorMessage);
@@ -222,11 +230,11 @@ public class Server {
     }
 
     private Boolean validateInput(String input) {
-        return input != null && !input.isEmpty();
+        return input != null && !input.trim().isEmpty();
     }
 
     private Boolean validateEmail(String email) {
-        return email != null;
+        return email != null && !email.trim().isEmpty();
     }
 
     private void initializeDatabase() {
@@ -250,4 +258,3 @@ public class Server {
         }
     }
 }
-//总共修改javalin，不知道test有没有问题，先提交
