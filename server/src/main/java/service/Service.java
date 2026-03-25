@@ -261,15 +261,6 @@ public class Service {
         int gameID = Math.abs(java.nio.ByteBuffer.wrap(randomBytes).getInt());
 
         return gameID;
-//        try {
-//            // Verify uniqueness
-//            while (gameDataAccess.getGameByID(gameID) != null) {
-//                SECURE_RANDOM.nextBytes(randomBytes);
-//                gameID = java.nio.ByteBuffer.wrap(randomBytes).getInt();
-//            }
-//            return gameID;
-//        } catch (dataaccess.ServerException e) {
-//            throw new ServerException(e.getMessage(), 500);
-//        }
+
     }
 }
