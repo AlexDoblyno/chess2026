@@ -7,7 +7,6 @@ import models.GameData;
 import models.UserData;
 import ui.*;
 
-
 import java.util.Collection;
 
 import static chess.ChessGame.TeamColor.OBSERVE;
@@ -27,7 +26,6 @@ public class ChessClient {
     }
 
     public String register(String... parameters) throws ResponseException {
-
         UserData user = new UserData(parameters[0], parameters[1], parameters[2]);
 
         // Set auth token in cached data object
@@ -44,7 +42,6 @@ public class ChessClient {
     }
 
     public String listGames() throws ResponseException {
-
         String authToken = dataCache.getAuthToken();
         Collection<GameData> gameList = server.listGame(authToken);
         dataCache.setGameCache(gameList);
@@ -57,8 +54,6 @@ public class ChessClient {
 
         int index = 1;
         for (GameData game : gameList) {
-            // Placeholders to insert necessary information, unfortunately creates a really annoying run-on string.
-            // Might want to reimplement later for more conciseness
             resultString.append(String.format("%s%d.%s %s%s%s [ White: %s%s%s | Black: %s%s%s ]\n",
                     EscapeSequences.SET_TEXT_COLOR_BLUE, index++, EscapeSequences.RESET_TEXT_COLOR,
                     EscapeSequences.SET_TEXT_BOLD, game.gameName(), EscapeSequences.RESET_TEXT_BOLD_FAINT,
@@ -68,18 +63,13 @@ public class ChessClient {
         return resultString.toString();
     }
 
-    // parameters only need to be a game name. AuthToken is stored in the DataCache.
-// parameters only need to be a game name. AuthToken is stored in the DataCache.
     public String createGame(String... parameters) throws ResponseException {
-
-        int gameID = server.createGame(dataCache.getAuthToken(), parameters[0]);
-
-        // 【修改这里】：不打印 gameID，只打印成功的提示和游戏房间名
+        // parameters[0] is the game name. AuthToken is stored in the DataCache.
+        server.createGame(dataCache.getAuthToken(), parameters[0]);
         return "Successfully created game room: " + parameters[0];
     }
 
-    // parameters[1] is the team color, and parameters[2] is the gameID
-// 升级版 joinGame：防崩溃、智能识别参数顺序、友好提示已满房间
+    // 升级版 joinGame：防崩溃、智能识别参数顺序、友好提示已满房间
     public String joinGame(String... parameters) {
         try {
             if (parameters.length < 2) {
@@ -90,7 +80,7 @@ public class ChessClient {
             String idStr;
 
             // 智能判断参数顺序：允许 "join white 1" 也可以 "join 1 white"
-            if (parameters[0].matches("\\d+")) { // 如果第一个参数是纯数字
+            if (parameters[0].matches("\\d+")) {
                 idStr = parameters[0];
                 colorStr = parameters[1];
             } else {
@@ -119,11 +109,10 @@ public class ChessClient {
                 return "Error: Game not found. Please check your game list.";
             }
 
-            // 【关键】：尝试加入游戏。如果服务器报错（例如座位有人了），在这里拦住它！
+            // 尝试加入游戏，拦截被占用的报错
             try {
                 server.joinGame(dataCache.getAuthToken(), teamColor, gameData.gameID());
             } catch (ResponseException e) {
-                // 如果抛出 already taken 等异常，返回红色的友好提示，绝不崩溃！
                 return EscapeSequences.SET_TEXT_COLOR_RED + "Failed to join: " + e.getMessage() + EscapeSequences.RESET_TEXT_COLOR;
             }
 
@@ -142,38 +131,59 @@ public class ChessClient {
             return "An unexpected error occurred: " + e.getMessage();
         }
     }
+
+    // 升级版 observeGame：具备和 join 相同的防崩溃机制
+    public String observeGame(String... parameters) {
+        try {
+            int gameIndex;
+            try {
+                gameIndex = Integer.parseInt(parameters[0]);
+            } catch (NumberFormatException e) {
+                return "Error: Invalid game ID number.";
+            }
+
+            Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
+            dataCache.setGameCache(gameList);
+
+            GameData gameData = dataCache.getGameByIndex(gameIndex);
+            if (gameData == null) {
+                return "Error: Game not found. Please check your game list.";
+            }
+
+            // 拦截可能发生的异常（虽然观战通常不会被占用，但为了系统健壮性加持）
+            try {
+                server.joinGame(dataCache.getAuthToken(), OBSERVE, gameData.gameID());
+            } catch (ResponseException e) {
+                return EscapeSequences.SET_TEXT_COLOR_RED + "Failed to observe: " + e.getMessage() + EscapeSequences.RESET_TEXT_COLOR;
+            }
+
+            // Set the gameboard drawer with default WHITE perspective for observers
+            drawBoard.setChessGame(gameData.game());
+            drawBoard.setPerspective(ChessGame.TeamColor.WHITE);
+            return drawBoard.drawBoardString();
+
+        } catch (Exception e) {
+            return "An unexpected error occurred: " + e.getMessage();
+        }
+    }
+
     private static ChessGame.TeamColor getTeamColor(String[] parameters) {
         // Determine team color
         ChessGame.TeamColor teamColor;
         if (parameters[0].contains("white") || parameters[0].contains("WHITE")) {
             teamColor = ChessGame.TeamColor.WHITE;
-        }
-        else if (parameters[0].contains("black") || parameters[0].contains("BLACK")) {
+        } else if (parameters[0].contains("black") || parameters[0].contains("BLACK")) {
             teamColor = ChessGame.TeamColor.BLACK;
-        }
-        else {
+        } else {
             teamColor = null;
         }
         return teamColor;
     }
 
-    // parameters[1] is the gameID
-    public String observeGame(String... parameters) throws ResponseException {
-        int gameindex = Integer.parseInt(parameters[0]);
-        Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
-        dataCache.setGameCache(gameList);
-        GameData gameData = dataCache.getGameByIndex(gameindex);
-
-        server.joinGame(dataCache.getAuthToken(), OBSERVE, gameData.gameID());
-
-        // Set the gameboard drawer
-        drawBoard.setChessGame(gameData.game());
-        return drawBoard.drawBoardString();
-    }
-    public String quitGame() throws ResponseException {
-        //server
+    public String quitGame() {
         return "Quit";
     }
+
     public String logout() throws ResponseException {
         server.logoutUser(dataCache.getAuthToken());
         dataCache.setAuthToken(null);
@@ -183,5 +193,4 @@ public class ChessClient {
     public DataCache getDataCache() {
         return dataCache;
     }
-
 }

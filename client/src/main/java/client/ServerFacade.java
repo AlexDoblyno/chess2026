@@ -13,6 +13,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ServerFacade {
@@ -55,9 +56,19 @@ public class ServerFacade {
         return this.makeRequest("POST", path, requestBody, CreatedGame.class, authToken).gameID;
     }
 
+    // 🚨 核心修复：灵活构造 JSON，防止观战 (OBSERVE) 时发送非法字段导致 400 bad request
     public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ResponseException {
         var path = "/game";
-        var requestBody = Map.of("playerColor", teamColor, "gameID", gameID);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("gameID", gameID);
+
+        // 只有当玩家作为 WHITE 或 BLACK 加入时，才发送 playerColor 字段
+        // 如果是 OBSERVE，直接略过，完美符合服务器的要求！
+        if (teamColor == ChessGame.TeamColor.WHITE || teamColor == ChessGame.TeamColor.BLACK) {
+            requestBody.put("playerColor", teamColor);
+        }
+
         this.makeRequest("PUT", path, requestBody, null, givenAuthData);
     }
 

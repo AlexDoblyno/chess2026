@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.List;
 
 // DataCache is meant to hold data that might need to persist between REPL loops or clients.
-//DataCache 用于保存可能需要在 REPL 循环或客户端之间持久化的数据。
+// DataCache 用于保存可能需要在 REPL 循环或客户端之间持久化的数据。
 public class DataCache {
     private String authToken;
     private int currentGameID;
@@ -42,8 +42,14 @@ public class DataCache {
         this.currentGameID = currentGameID;
     }
 
+    // 🚨 核心修复：防止输入不存在的房间号导致 IndexOutOfBoundsException 崩溃
     public GameData getGameByIndex(int index) {
-        return gameCache.get(index - 1);
+        try {
+            return gameCache.get(index - 1);
+        } catch (IndexOutOfBoundsException e) {
+            // 如果越界（比如只有5个游戏却输入了6），温柔地返回 null
+            return null;
+        }
     }
 
     public void setGameCache(Collection<GameData> gameCache) {
