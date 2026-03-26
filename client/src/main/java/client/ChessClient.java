@@ -133,6 +133,7 @@ public class ChessClient {
     }
 
     // 升级版 observeGame：具备和 join 相同的防崩溃机制
+// 离线版 observeGame：直接从本地缓存读取棋盘，不连结网络
     public String observeGame(String... parameters) {
         try {
             int gameIndex;
@@ -142,22 +143,16 @@ public class ChessClient {
                 return "Error: Invalid game ID number.";
             }
 
-            Collection<GameData> gameList = server.listGame(dataCache.getAuthToken());
-            dataCache.setGameCache(gameList);
-
+            // 1. 直接从本地缓存获取游戏数据，不再调用 server.listGame() 连网刷新
             GameData gameData = dataCache.getGameByIndex(gameIndex);
             if (gameData == null) {
-                return "Error: Game not found. Please check your game list.";
+                return "Error: Game not found. Please check your game list (try typing 'list' to refresh).";
             }
 
-            // 拦截可能发生的异常（虽然观战通常不会被占用，但为了系统健壮性加持）
-            try {
-                server.joinGame(dataCache.getAuthToken(), OBSERVE, gameData.gameID());
-            } catch (ResponseException e) {
-                return EscapeSequences.SET_TEXT_COLOR_RED + "Failed to observe: " + e.getMessage() + EscapeSequences.RESET_TEXT_COLOR;
-            }
+            // 🚨 2. 完全删除了 server.joinGame(...) 的网络请求代码！
+            // 因为我们只是想“看看”本地缓存的棋盘，不需要通知服务器。
 
-            // Set the gameboard drawer with default WHITE perspective for observers
+            // 3. 设置画板，以默认的白方视角打印棋盘
             drawBoard.setChessGame(gameData.game());
             drawBoard.setPerspective(ChessGame.TeamColor.WHITE);
             return drawBoard.drawBoardString();
