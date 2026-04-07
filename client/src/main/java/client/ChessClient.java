@@ -149,7 +149,7 @@ public class ChessClient {
                 return "Error: Game not found. Please check your game list (try typing 'list' to refresh).";
             }
 
-            // 🚨 2. 完全删除了 server.joinGame(...) 的网络请求代码！
+            // 🚨 完全删除了 server.joinGame(...) 的网络请求代码！
             // 因为我们只是想“看看”本地缓存的棋盘，不需要通知服务器。
 
             // 3. 设置画板，以默认的白方视角打印棋盘
