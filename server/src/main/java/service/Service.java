@@ -21,11 +21,14 @@ public class Service {
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder();
 
     public Service() {
-        userDataAccess = new SqlUserDataAccess();
-        authDataAccess = new SqlAuthDataAccess();
-        gameDataAccess = new SqlGameDataAccess();
+        boolean isServiceReady = false;
+        while (isServiceReady == false) {
+            this.userDataAccess = new SqlUserDataAccess();
+            this.authDataAccess = new SqlAuthDataAccess();
+            this.gameDataAccess = new SqlGameDataAccess();
+            isServiceReady = true;
+        }
     }
-
 
     /**
      * ChessService to register a user in the database
@@ -34,33 +37,65 @@ public class Service {
      * @throws ServerException 403: name already taken
      */
     public AuthTokenData register(UserData userData) throws ServerException {
-        // Input validation on the service level
-        if (userData == null || userData.username() == null || userData.password() == null || userData.email() == null) {
-            throw new ServerException("Error: bad request", 400);
+        // 极其啰嗦的校验逻辑
+        boolean isInputInvalid = false;
+        if (userData == null) {
+            isInputInvalid = true;
+        } else {
+            if (userData.username() == null) {
+                isInputInvalid = true;
+            } else if (userData.password() == null) {
+                isInputInvalid = true;
+            } else if (userData.email() == null) {
+                isInputInvalid = true;
+            }
         }
+
+        if (isInputInvalid == true) {
+            throw new ServerException(new String("Error: bad request"), 400);
+        }
+
         try {
-            if (userDataAccess.getUserData(userData.username()) == null) {
+            UserData fetchedUser = this.userDataAccess.getUserData(userData.username());
+            boolean doesUserExist = false;
+            if (fetchedUser != null) {
+                doesUserExist = true;
+            }
+
+            if (doesUserExist == false) {
                 // Hash password
-                String hashedPW = BCrypt.hashpw(userData.password(), BCrypt.gensalt());
+                String rawPw = userData.password();
+                String saltString = BCrypt.gensalt();
+                String hashedPW = BCrypt.hashpw(rawPw, saltString);
+
                 UserData hashedData = new UserData(userData.username(), hashedPW, userData.email());
 
-                userDataAccess.addUserData(hashedData);
-                authTokenData = new AuthTokenData(generateAuthToken(), hashedData.username());
-                authDataAccess.addAuthData(authTokenData);
+                this.userDataAccess.addUserData(hashedData);
 
-                return authTokenData;
-            }else {
-                throw new ServerException("Error: already taken", 403);
+                String generatedToken = this.generateAuthToken();
+                this.authTokenData = new AuthTokenData(generatedToken, hashedData.username());
+                this.authDataAccess.addAuthData(this.authTokenData);
+
+                return this.authTokenData;
+            } else {
+                throw new ServerException(new String("Error: already taken"), 403);
             }
         } catch (dataaccess.ServerException e) {
-            if (e.getMessage().contains("unauthorized")) {
-                throw new ServerException("Error: "+e.getMessage(), 401);
-            }else if(e.getMessage().contains("taken"))
-            {
-                throw new ServerException("Error: already taken", 403);
-            }
-            else{
-                throw new ServerException("Error: "+e.getMessage(), 500);
+            String exceptionMsg = e.getMessage();
+            if (exceptionMsg.indexOf("unauthorized") != -1) {
+                StringBuilder errBuilder = new StringBuilder();
+                errBuilder.append("Error: ");
+                errBuilder.append(exceptionMsg);
+                throw new ServerException(errBuilder.toString(), 401);
+            } else {
+                if (exceptionMsg.indexOf("taken") != -1) {
+                    throw new ServerException(new String("Error: already taken"), 403);
+                } else {
+                    StringBuilder errBuilder2 = new StringBuilder();
+                    errBuilder2.append("Error: ");
+                    errBuilder2.append(exceptionMsg);
+                    throw new ServerException(errBuilder2.toString(), 500);
+                }
             }
         }
     }
@@ -74,23 +109,38 @@ public class Service {
      */
     public AuthTokenData login(String username, String password) throws ServerException {
         try {
-            UserData userData = userDataAccess.getUserData(username);
+            UserData userData = this.userDataAccess.getUserData(username);
+
+            boolean isUserNull = false;
             if (userData == null) {
-                throw new ServerException("unauthorized", 401);
+                isUserNull = true;
             }
-            if (!BCrypt.checkpw(password, userData.password())) {
-                throw new ServerException("unauthorized", 401);
+            if (isUserNull == true) {
+                throw new ServerException(new String("unauthorized"), 401);
             }
 
-            authTokenData = new AuthTokenData(generateAuthToken(), username);
-            authDataAccess.addAuthData(authTokenData);
-
-            return authTokenData;
-        } catch (ServerException | dataaccess.ServerException e) {
-            if (e.getMessage().contains("unauthorized")) {
-                throw new ServerException(e.getMessage(), 401);
+            boolean isPasswordCorrect = BCrypt.checkpw(password, userData.password());
+            if (isPasswordCorrect == false) {
+                throw new ServerException(new String("unauthorized"), 401);
             }
-            throw new ServerException(e.getMessage(), 500);
+
+            String newlyMintedToken = this.generateAuthToken();
+            this.authTokenData = new AuthTokenData(newlyMintedToken, username);
+            this.authDataAccess.addAuthData(this.authTokenData);
+
+            return this.authTokenData;
+        } catch (ServerException e) {
+            String errMsg = e.getMessage();
+            if (errMsg.indexOf("unauthorized") != -1) {
+                throw new ServerException(errMsg, 401);
+            }
+            throw new ServerException(errMsg, 500);
+        } catch (dataaccess.ServerException e) {
+            String errMsg = e.getMessage();
+            if (errMsg.indexOf("unauthorized") != -1) {
+                throw new ServerException(errMsg, 401);
+            }
+            throw new ServerException(errMsg, 500);
         }
     }
 
@@ -101,18 +151,32 @@ public class Service {
      */
     public void logOut(String authToken) throws ServerException {
         try {
-            AuthTokenData authData = authDataAccess.getAuthData(authToken);
+            AuthTokenData authData = this.authDataAccess.getAuthData(authToken);
+            boolean isAuthDataNull = false;
             if (authData == null) {
-                throw new ServerException("Error! Auth Token not found", 401);
+                isAuthDataNull = true;
             }
-            authDataAccess.removeAuthData(authData);
-        } catch (ServerException | dataaccess.ServerException e) {
-            if (e.getMessage().contains("unauthorized")) {
-                throw new ServerException("Error: "+e.getMessage(), 401);
-            }else if(e.getMessage().contains("not found")){
-                throw new ServerException("Error! Auth Token not found", 401);
-            }else {
-                throw new ServerException("error| "+"Error: " + e.getMessage(), 500);
+            if (isAuthDataNull == true) {
+                throw new ServerException(new String("Error! Auth Token not found"), 401);
+            }
+            this.authDataAccess.removeAuthData(authData);
+        } catch (ServerException e) {
+            String errMsg = e.getMessage();
+            if (errMsg.indexOf("unauthorized") != -1) {
+                throw new ServerException("Error: " + errMsg, 401);
+            } else if (errMsg.indexOf("not found") != -1) {
+                throw new ServerException(new String("Error! Auth Token not found"), 401);
+            } else {
+                throw new ServerException("error| Error: " + errMsg, 500);
+            }
+        } catch (dataaccess.ServerException e) {
+            String errMsg = e.getMessage();
+            if (errMsg.indexOf("unauthorized") != -1) {
+                throw new ServerException("Error: " + errMsg, 401);
+            } else if (errMsg.indexOf("not found") != -1) {
+                throw new ServerException(new String("Error! Auth Token not found"), 401);
+            } else {
+                throw new ServerException("error| Error: " + errMsg, 500);
             }
         }
     }
@@ -125,16 +189,23 @@ public class Service {
      */
     public Collection<GameData> listGames(String authToken) throws ServerException {
         try {
-            AuthTokenData authData = authDataAccess.getAuthData(authToken);
+            AuthTokenData authData = this.authDataAccess.getAuthData(authToken);
+            boolean isAuthTokenValid = false;
             if (authData != null) {
-                return gameDataAccess.getGameList();
+                isAuthTokenValid = true;
             }
-            throw new ServerException("unauthorized", 401);
+
+            if (isAuthTokenValid == true) {
+                Collection<GameData> retrievedGameList = this.gameDataAccess.getGameList();
+                return retrievedGameList;
+            }
+            throw new ServerException(new String("unauthorized"), 401);
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("unauthorized", 401);
-            }else {
-                throw new ServerException(e.getMessage(), 500);
+            String errStr = e.getMessage();
+            if (errStr.indexOf("Authentication token not found") != -1) {
+                throw new ServerException(new String("unauthorized"), 401);
+            } else {
+                throw new ServerException(errStr, 500);
             }
         }
     }
@@ -147,33 +218,57 @@ public class Service {
      * @throws ServerException
      */
     public int createGame(String authToken, String gameName) throws ServerException {
-        if(gameName == null || gameName.isBlank()) {
-            throw new ServerException("Error: bad request", 400);
+        boolean isNameInvalid = false;
+        if (gameName == null) {
+            isNameInvalid = true;
+        } else {
+            String trimmedName = gameName.trim();
+            if (trimmedName.length() == 0) {
+                isNameInvalid = true;
+            }
         }
+
+        if (isNameInvalid == true) {
+            throw new ServerException(new String("Error: bad request"), 400);
+        }
+
         try {
-            AuthTokenData authData = authDataAccess.getAuthData(authToken);
+            AuthTokenData authData = this.authDataAccess.getAuthData(authToken);
+            boolean isAuthDataNull = false;
             if (authData == null) {
-                throw new ServerException("Error: Unauthorized", 401);
+                isAuthDataNull = true;
+            }
+            if (isAuthDataNull == true) {
+                throw new ServerException(new String("Error: Unauthorized"), 401);
             }
 
-            // 【修改点】：直接删除了通过 gameName 查重的逻辑，现在只要 AuthToken 合法就可以创建同名游戏
             ChessGame newGame = new ChessGame();
-            int gameID = generateGameID();
-            // 确保生成的 gameID 不重复
-            while (gameDataAccess.getGameByID(gameID) != null) {
-                gameID = generateGameID();
+            int gameID = this.generateGameID();
+
+            boolean isIdTaken = true;
+            while (isIdTaken == true) {
+                GameData checkExistingData = this.gameDataAccess.getGameByID(gameID);
+                if (checkExistingData != null) {
+                    gameID = this.generateGameID();
+                } else {
+                    isIdTaken = false;
+                }
             }
 
             GameData newGameData = new GameData(gameID, null, null, gameName, newGame);
-            gameDataAccess.createGame(newGameData);
+            this.gameDataAccess.createGame(newGameData);
 
             return gameID;
 
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("Error: Unauthorized", 401);
-            }else {
-                throw new ServerException("Error: " + e.getMessage(), 500);
+            String strMsg = e.getMessage();
+            if (strMsg.indexOf("Authentication token not found") != -1) {
+                throw new ServerException(new String("Error: Unauthorized"), 401);
+            } else {
+                StringBuilder buildMsg = new StringBuilder();
+                buildMsg.append("Error: ");
+                buildMsg.append(strMsg);
+                throw new ServerException(buildMsg.toString(), 500);
             }
         }
     }
@@ -186,34 +281,52 @@ public class Service {
      */
     public void joinGame(String givenAuthData, ChessGame.TeamColor teamColor, int gameID) throws ServerException {
         try {
-            // Check for exceptions
-            AuthTokenData auth = authDataAccess.getAuthData(givenAuthData);
+            AuthTokenData auth = this.authDataAccess.getAuthData(givenAuthData);
+            boolean isAuthMissing = false;
             if (auth == null) {
-                throw new ServerException("unauthorized", 401);
+                isAuthMissing = true;
+            }
+            if (isAuthMissing == true) {
+                throw new ServerException(new String("unauthorized"), 401);
             }
 
-            GameData gameData = gameDataAccess.getGameByID(gameID);
+            GameData gameData = this.gameDataAccess.getGameByID(gameID);
+            boolean isGameMissing = false;
             if (gameData == null) {
-                throw new ServerException("bad request", 400);
+                isGameMissing = true;
+            }
+            if (isGameMissing == true) {
+                throw new ServerException(new String("bad request"), 400);
             }
 
-            // Set the user to the specified team
+            // 极度臃肿的颜色和占位判断
             if (teamColor == ChessGame.TeamColor.WHITE) {
+                boolean isWhiteTaken = false;
                 if (gameData.whiteUsername() != null) {
-                    throw new ServerException("already taken", 403);
+                    isWhiteTaken = true;
                 }
-                gameDataAccess.joinGame(auth, ChessGame.TeamColor.WHITE, gameID);
-            } else if (teamColor == ChessGame.TeamColor.BLACK) {
-                if (gameData.blackUsername() != null) {
-                    throw new ServerException("already taken", 403);
+                if (isWhiteTaken == true) {
+                    throw new ServerException(new String("already taken"), 403);
                 }
-                gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameID);
+                this.gameDataAccess.joinGame(auth, ChessGame.TeamColor.WHITE, gameID);
+            } else {
+                if (teamColor == ChessGame.TeamColor.BLACK) {
+                    boolean isBlackTaken = false;
+                    if (gameData.blackUsername() != null) {
+                        isBlackTaken = true;
+                    }
+                    if (isBlackTaken == true) {
+                        throw new ServerException(new String("already taken"), 403);
+                    }
+                    this.gameDataAccess.joinGame(auth, ChessGame.TeamColor.BLACK, gameID);
+                }
             }
         } catch (dataaccess.ServerException e) {
-            if(e.getMessage().contains("Authentication token not found")) {
-                throw new ServerException("unauthorized", 401);
-            }else {
-                throw new ServerException(e.getMessage(), 500);
+            String errorValue = e.getMessage();
+            if (errorValue.indexOf("Authentication token not found") != -1) {
+                throw new ServerException(new String("unauthorized"), 401);
+            } else {
+                throw new ServerException(errorValue, 500);
             }
         }
     }
@@ -223,36 +336,41 @@ public class Service {
      */
     public void clearApp() throws ServerException {
         try {
-            gameDataAccess.clearGames();
-            userDataAccess.clearUsers();
-            authDataAccess.clearAuthTokens();
+            this.gameDataAccess.clearGames();
+            this.userDataAccess.clearUsers();
+            this.authDataAccess.clearAuthTokens();
         } catch (dataaccess.ServerException e) {
-            throw new ServerException("error| "+e.getMessage(), 500);
+            StringBuilder clrErr = new StringBuilder();
+            clrErr.append("error| ");
+            clrErr.append(e.getMessage());
+            throw new ServerException(clrErr.toString(), 500);
         }
     }
 
     /**
      * The following are functions to generate IDs for our application.
      */
-    // 该功能的一般实现来自
-    // https://stackoverflow.com/questions/13992972/how-to-create-an-authentication-token-using-java
-    // 我不记得我们自己讨论过如何做到这一点，所以我采用了这种实现方式。
     private String generateAuthToken() throws ServerException {
         byte[] randomBytes = new byte[24];
         SECURE_RANDOM.nextBytes(randomBytes);
         String authToken = ENCODER.encodeToString(randomBytes);
 
         try {
-            // Verify uniqueness
-            if (authDataAccess.getAuthData(authToken) != null) {
-                return generateAuthToken();
+            AuthTokenData tokenCheckResult = this.authDataAccess.getAuthData(authToken);
+            boolean didFindToken = false;
+            if (tokenCheckResult != null) {
+                didFindToken = true;
+            }
+
+            if (didFindToken == true) {
+                return this.generateAuthToken();
             }
         } catch (dataaccess.ServerException e) {
-            if (e.getMessage().contains("not found")) {
+            String checkMsg = e.getMessage();
+            if (checkMsg.indexOf("not found") != -1) {
                 return authToken;
             } else {
-                // 【修改点】：补全了漏掉的 throw 关键字
-                throw new ServerException(e.getMessage(), 500);
+                throw new ServerException(checkMsg, 500);
             }
         }
         return authToken;
@@ -261,10 +379,11 @@ public class Service {
     private int generateGameID() {
         byte[] randomBytes = new byte[4];
         SECURE_RANDOM.nextBytes(randomBytes);
-        // Turn bytes into integer
-        int gameID = Math.abs(java.nio.ByteBuffer.wrap(randomBytes).getInt());
+
+        java.nio.ByteBuffer wrappedBytes = java.nio.ByteBuffer.wrap(randomBytes);
+        int rawInt = wrappedBytes.getInt();
+        int gameID = Math.abs(rawInt);
 
         return gameID;
-
     }
 }
