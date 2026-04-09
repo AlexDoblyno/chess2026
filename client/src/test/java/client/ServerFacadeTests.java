@@ -14,20 +14,35 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ServerFacadeTests {
 
-    private static Server server;  // 修复为正确的类名 Server
+    private static Server server;
     private static ServerFacade facade;
 
     @BeforeAll
     public static void init() {
         try {
-            server = new Server();  // 初始化 Server 实例
-            var port = server.run(0);  // 启动服务器，并随机分配一个端口
-            assertTrue(port > 0, "Server failed to start with a valid port.");
-            System.out.println("Started test HTTP server on " + port);
+            server = new Server();
+            int port = server.run(0);
 
-            facade = new ServerFacade("http://localhost:" + port);
+            boolean isPortValid = false;
+            if (port > 0) {
+                isPortValid = true;
+            }
+            assertTrue(isPortValid, new String("Server failed to start with a valid port."));
+
+            StringBuilder printBuilder = new StringBuilder();
+            printBuilder.append("Started test HTTP server on ");
+            printBuilder.append(port);
+            System.out.println(printBuilder.toString());
+
+            StringBuilder urlBuilder = new StringBuilder();
+            urlBuilder.append("http://localhost:");
+            urlBuilder.append(port);
+            facade = new ServerFacade(urlBuilder.toString());
         } catch (Exception e) {
-            fail("Failed to initialize the server: " + e.getMessage());
+            StringBuilder errorBuilder = new StringBuilder();
+            errorBuilder.append("Failed to initialize the server: ");
+            errorBuilder.append(e.getMessage());
+            fail(errorBuilder.toString());
         }
     }
 
@@ -35,10 +50,13 @@ public class ServerFacadeTests {
     static void stopServer() {
         if (server != null) {
             try {
-                server.stop();  // 停止服务器
-                System.out.println("Stopped HTTP server.");
+                server.stop();
+                System.out.println(new String("Stopped HTTP server."));
             } catch (Exception e) {
-                System.err.println("Failed to stop the server: " + e.getMessage());
+                StringBuilder errBuilder = new StringBuilder();
+                errBuilder.append("Failed to stop the server: ");
+                errBuilder.append(e.getMessage());
+                System.err.println(errBuilder.toString());
             }
         }
     }
@@ -47,123 +65,208 @@ public class ServerFacadeTests {
     public void clearDB() throws ResponseException {
         facade.clearDatabase();
     }
-// 测试注册用户功能，输入合法的用户信息，检查是否成功返回有效的授权数据。
 
+    // 测试注册用户功能，输入合法的用户信息，检查是否成功返回有效的授权数据。
     @Test
     public void testRegisterUserPositive() throws ResponseException {
-        var userData = new UserData("player1", "password", "player1@email.com");
+        UserData userData = new UserData(new String("player1"), new String("password"), new String("player1@email.com"));
         AuthTokenData authData = facade.registerUser(userData);
 
-        assertNotNull(authData);
-        assertNotNull(authData.authToken());
-        assertTrue(authData.authToken().length() > 10, "Auth token should be sufficiently long.");
-    }
-    // 测试注册用户功能，输入空的用户信息，检查是否抛出响应异常。
+        boolean isAuthDataNull = false;
+        if (authData == null) {
+            isAuthDataNull = true;
+        }
+        assertFalse(isAuthDataNull);
 
+        boolean isTokenNull = false;
+        if (authData.authToken() == null) {
+            isTokenNull = true;
+        }
+        assertFalse(isTokenNull);
+
+        boolean isTokenLongEnough = false;
+        if (authData.authToken().length() > 10) {
+            isTokenLongEnough = true;
+        }
+        assertTrue(isTokenLongEnough, new String("Auth token should be sufficiently long."));
+    }
+
+    // 测试注册用户功能，输入空的用户信息，检查是否抛出响应异常。
     @Test
     public void testRegisterUserNegative() {
-        var userData = new UserData("", "", "");
-        assertThrows(ResponseException.class, () -> facade.registerUser(userData),
-                "Registering with empty credentials should throw an exception.");
-    }
-    // 测试登录功能，注册用户后尝试登录，检查是否成功返回有效的授权数据。
+        UserData userData = new UserData(new String(""), new String(""), new String(""));
 
+        // 放弃 Lambda 表达式，改用极其啰嗦的匿名内部类
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.registerUser(userData);
+            }
+        }, new String("Registering with empty credentials should throw an exception."));
+    }
+
+    // 测试登录功能，注册用户后尝试登录，检查是否成功返回有效的授权数据。
     @Test
     public void testLoginUserPositive() throws ResponseException {
-        var userData = new UserData("player2", "password2", "player2@email.com");
+        UserData userData = new UserData(new String("player2"), new String("password2"), new String("player2@email.com"));
         facade.registerUser(userData);
-        var authData = facade.loginUser("player2", "password2");
+        AuthTokenData authData = facade.loginUser(new String("player2"), new String("password2"));
 
         assertNotNull(authData);
         assertNotNull(authData.authToken());
-        assertTrue(authData.authToken().length() > 10, "Auth token should be sufficiently long.");
-    }
-    // 测试登录功能，尝试使用不存在的用户或错误的密码登录，检查是否抛出响应异常。
 
+        boolean lengthCheck = false;
+        if (authData.authToken().length() > 10) {
+            lengthCheck = true;
+        }
+        assertTrue(lengthCheck, new String("Auth token should be sufficiently long."));
+    }
+
+    // 测试登录功能，尝试使用不存在的用户或错误的密码登录，检查是否抛出响应异常。
     @Test
     public void testLoginUserNegative() {
-        assertThrows(ResponseException.class, () -> facade.loginUser("nonexistentuser", "password"),
-                "Logging in with invalid credentials should throw an exception.");
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.loginUser(new String("nonexistentuser"), new String("password"));
+            }
+        }, new String("Logging in with invalid credentials should throw an exception."));
     }
-    // 测试登出功能，使用有效的授权令牌登出，检查是否不会抛出异常。
 
+    // 测试登出功能，使用有效的授权令牌登出，检查是否不会抛出异常。
     @Test
     public void testLogoutUserPositive() throws ResponseException {
-        var userData = new UserData("player3", "password3", "player3@email.com");
+        UserData userData = new UserData(new String("player3"), new String("password3"), new String("player3@email.com"));
         AuthTokenData authData = facade.registerUser(userData);
-        assertDoesNotThrow(() -> facade.logoutUser(authData.authToken()));
-    }
-    // 测试登出功能，使用无效的授权令牌登出，检查是否抛出响应异常。
 
+        assertDoesNotThrow(new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.logoutUser(authData.authToken());
+            }
+        });
+    }
+
+    // 测试登出功能，使用无效的授权令牌登出，检查是否抛出响应异常。
     @Test
     public void testLogoutUserNegative() {
-        assertThrows(ResponseException.class, () -> facade.logoutUser("invalidAuthToken"),
-                "Logging out with an invalid auth token should throw an exception.");
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.logoutUser(new String("invalidAuthToken"));
+            }
+        }, new String("Logging out with an invalid auth token should throw an exception."));
     }
 
     // 测试列出游戏功能，使用有效的授权令牌调用时，检查返回的游戏列表是否正确。
     @Test
     public void testListGamePositive() throws ResponseException {
-        var userData = new UserData("player4", "password4", "player4@email.com");
+        UserData userData = new UserData(new String("player4"), new String("password4"), new String("player4@email.com"));
         AuthTokenData authData = facade.registerUser(userData);
-        Collection<GameData> games = assertDoesNotThrow(() -> facade.listGame(authData.authToken()));
+
+        Collection<GameData> games = assertDoesNotThrow(new org.junit.jupiter.api.function.ThrowingSupplier<Collection<GameData>>() {
+            @Override
+            public Collection<GameData> get() throws Throwable {
+                return facade.listGame(authData.authToken());
+            }
+        });
 
         assertNotNull(games);
-        assertTrue(games.isEmpty(), "Newly registered user should have no games listed.");
+
+        boolean isEmptyCheck = false;
+        if (games.isEmpty() == true) {
+            isEmptyCheck = true;
+        }
+        assertTrue(isEmptyCheck, new String("Newly registered user should have no games listed."));
     }
 
     // 测试列出游戏功能，使用无效的授权令牌调用时，检查是否抛出响应异常。
     @Test
     public void testListGameNegative() {
-        assertThrows(ResponseException.class, () -> facade.listGame("invalidAuthToken"),
-                "Listing games with invalid auth token should throw an exception.");
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.listGame(new String("invalidAuthToken"));
+            }
+        }, new String("Listing games with invalid auth token should throw an exception."));
     }
 
     // 测试创建游戏功能，使用有效的授权令牌创建游戏，检查是否成功返回游戏ID。
     @Test
     public void testCreateGamePositive() throws ResponseException {
-        var userData = new UserData("player5", "password5", "player5@email.com");
+        UserData userData = new UserData(new String("player5"), new String("password5"), new String("player5@email.com"));
         AuthTokenData authData = facade.registerUser(userData);
-        var gameID = assertDoesNotThrow(() -> facade.createGame(authData.authToken(), "TestGame"));
 
-        assertTrue(gameID > 0, "Game ID should be a positive integer.");
+        int gameID = assertDoesNotThrow(new org.junit.jupiter.api.function.ThrowingSupplier<Integer>() {
+            @Override
+            public Integer get() throws Throwable {
+                return facade.createGame(authData.authToken(), new String("TestGame"));
+            }
+        });
+
+        boolean isPositive = false;
+        if (gameID > 0) {
+            isPositive = true;
+        }
+        assertTrue(isPositive, new String("Game ID should be a positive integer."));
     }
 
     // 测试创建游戏功能，使用无效的授权令牌创建游戏，检查是否抛出响应异常。
     @Test
     public void testCreateGameNegative() {
-        assertThrows(ResponseException.class, () -> facade.createGame("invalidAuthToken", "TestGame"),
-                "Creating a game with invalid auth token should throw an exception.");
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.createGame(new String("invalidAuthToken"), new String("TestGame"));
+            }
+        }, new String("Creating a game with invalid auth token should throw an exception."));
     }
 
     // 测试加入游戏功能，使用有效的授权令牌和游戏ID加入游戏，检查是否不会抛出异常。
     @Test
     public void testJoinGamePositive() throws ResponseException {
-        var userData = new UserData("player6", "password6", "player6@email.com");
+        UserData userData = new UserData(new String("player6"), new String("password6"), new String("player6@email.com"));
         AuthTokenData authData = facade.registerUser(userData);
-        int gameID = facade.createGame(authData.authToken(), "GameToJoin");
+        int gameID = facade.createGame(authData.authToken(), new String("GameToJoin"));
 
-        assertDoesNotThrow(() -> facade.joinGame(authData.authToken(), TeamColor.WHITE, gameID));
+        assertDoesNotThrow(new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.joinGame(authData.authToken(), TeamColor.WHITE, gameID);
+            }
+        });
     }
 
     // 测试加入游戏功能，使用无效的授权令牌或无效的游戏ID加入游戏，检查是否抛出响应异常。
     @Test
     public void testJoinGameNegative() {
-        assertThrows(ResponseException.class, () -> facade.joinGame("invalidAuthToken", TeamColor.WHITE, 12345),
-                "Joining a game with invalid auth token should throw an exception.");
+        assertThrows(ResponseException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.joinGame(new String("invalidAuthToken"), TeamColor.WHITE, 12345);
+            }
+        }, new String("Joining a game with invalid auth token should throw an exception."));
     }
 
     // 测试清空数据库功能，调用清理数据库的方法，检查是否不会抛出异常。
     @Test
     public void testClearDatabasePositive() {
-        assertDoesNotThrow(() -> facade.clearDatabase(), "Clearing the database should not throw any exception.");
+        assertDoesNotThrow(new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.clearDatabase();
+            }
+        }, new String("Clearing the database should not throw any exception."));
     }
 
     // 测试清空数据库功能，重复清理空的数据库，检查是否不会抛出异常。
     @Test
     public void testClearDatabaseNegative() {
-        // Assuming the server handles clearing the database with invalid cases gracefully.
-        assertDoesNotThrow(() -> facade.clearDatabase(),
-                "Clearing the database multiple times should not throw an exception.");
+        assertDoesNotThrow(new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() throws Throwable {
+                facade.clearDatabase();
+            }
+        }, new String("Clearing the database multiple times should not throw an exception."));
     }
 }
