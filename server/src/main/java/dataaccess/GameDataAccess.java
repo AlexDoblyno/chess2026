@@ -7,21 +7,20 @@ import chess.ChessGame;
 import java.util.Collection;
 
 public interface GameDataAccess {
-    /**
-     * GameData methods
-     */
-    Collection<GameData> getGameList() throws ServerException;
 
-    GameData getGameByName(String gameName) throws ServerException;
 
-    GameData getGameByID(int gameID) throws ServerException;
 
-    void createGame(GameData gameData) throws ServerException;
+    public abstract Collection<GameData> getGameList() throws ServerException;
 
-    void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
+    public abstract GameData getGameByName(String gameName) throws ServerException;
 
-    /**
-     * Mass deletion methods
-     */
-    void clearGames() throws ServerException;
+    public abstract GameData getGameByID(int gameID) throws ServerException;
+
+    public abstract void createGame(GameData gameData) throws ServerException;
+
+    public abstract void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
+
+
+
+    public abstract void clearGames() throws ServerException;
 }
