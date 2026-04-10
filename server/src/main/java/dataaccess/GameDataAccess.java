@@ -18,6 +18,8 @@ public interface GameDataAccess {
 
     public abstract void createGame(GameData gameData) throws ServerException;
 
+    public abstract void updateGame(GameData gameData) throws ServerException;
+
     public abstract void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException;
 
 

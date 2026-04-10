@@ -347,6 +347,54 @@ public class Service {
         }
     }
 
+    public AuthTokenData authenticate(String authToken) throws ServerException {
+        if (authToken == null || authToken.isBlank()) {
+            throw new ServerException("unauthorized", 401);
+        }
+
+        try {
+            return this.authDataAccess.getAuthData(authToken);
+        } catch (dataaccess.ServerException e) {
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && (errorMessage.contains("not found") || errorMessage.contains("unauthorized"))) {
+                throw new ServerException("unauthorized", 401);
+            }
+            throw new ServerException(errorMessage, 500);
+        }
+    }
+
+    public GameData getGame(int gameID) throws ServerException {
+        try {
+            GameData gameData = this.gameDataAccess.getGameByID(gameID);
+            if (gameData == null) {
+                throw new ServerException("bad request", 400);
+            }
+            return gameData;
+        } catch (dataaccess.ServerException e) {
+            throw new ServerException(e.getMessage(), 500);
+        }
+    }
+
+    public void saveGame(GameData gameData) throws ServerException {
+        try {
+            this.gameDataAccess.updateGame(gameData);
+        } catch (dataaccess.ServerException e) {
+            throw new ServerException(e.getMessage(), 500);
+        }
+    }
+
+    public GameData removePlayerFromGame(String authToken, int gameID) throws ServerException {
+        AuthTokenData authData = authenticate(authToken);
+        GameData gameData = getGame(gameID);
+        GameData updatedGame = gameData.clearPlayer(authData.username());
+
+        if (!updatedGame.equals(gameData)) {
+            saveGame(updatedGame);
+        }
+
+        return updatedGame;
+    }
+
     /**
      * The following are functions to generate IDs for our application.
      */

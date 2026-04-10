@@ -1,9 +1,7 @@
 package dataaccess;
 
-import com.mysql.cj.exceptions.DataReadException;
 import models.AuthTokenData;
 
-import javax.xml.crypto.Data;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

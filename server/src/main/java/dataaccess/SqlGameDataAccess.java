@@ -99,10 +99,28 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     }
 
     @Override
+    public void updateGame(GameData gameData) throws ServerException {
+        String update = "UPDATE GameData SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?";
+
+        try (var conn = DatabaseManager.getConnection();
+             var preparedStatement = conn.prepareStatement(update)) {
+            preparedStatement.setObject(1, gameData.whiteUsername());
+            preparedStatement.setObject(2, gameData.blackUsername());
+            preparedStatement.setString(3, gameData.gameName());
+            preparedStatement.setString(4, new Gson().toJson(gameData.game()));
+            preparedStatement.setInt(5, gameData.gameID());
+
+            if (preparedStatement.executeUpdate() == 0) {
+                throw new ServerException("Update game failed: invalid game");
+            }
+        } catch (SQLException | DataAccessException e) {
+            throw new ServerException("Update game failed: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
-
-            // 🌟 新增逻辑：在加入之前，先把该玩家从这个游戏的白方或黑方位置上清理掉（实现换边）
             String removeWhite = "UPDATE GameData SET whiteUsername = NULL WHERE gameID = ? AND whiteUsername = ?";
             try (var ps = conn.prepareStatement(removeWhite)) {
                 ps.setInt(1, gameID);
@@ -117,14 +135,12 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
                 ps.executeUpdate();
             }
 
-            // 原始逻辑：将玩家加入指定的队伍
             String join = null;
             if (team == ChessGame.TeamColor.WHITE) {
                 join = "UPDATE GameData SET whiteUsername = ? WHERE gameID = ? AND whiteUsername IS NULL";
             } else if (team == ChessGame.TeamColor.BLACK){
                 join = "UPDATE GameData SET blackUsername = ? WHERE gameID = ? AND blackUsername IS NULL";
             } else {
-                // 如果是 OBSERVE (观战)，不需要在数据库里占座，直接返回即可
                 return;
             }
 
