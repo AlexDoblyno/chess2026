@@ -121,19 +121,7 @@ public class SqlGameDataAccess implements GameDataAccess, SqlAccess {
     @Override
     public void joinGame(AuthTokenData authData, ChessGame.TeamColor team, int gameID) throws ServerException {
         try (var conn = DatabaseManager.getConnection()) {
-            String removeWhite = "UPDATE GameData SET whiteUsername = NULL WHERE gameID = ? AND whiteUsername = ?";
-            try (var ps = conn.prepareStatement(removeWhite)) {
-                ps.setInt(1, gameID);
-                ps.setString(2, authData.username());
-                ps.executeUpdate();
-            }
 
-            String removeBlack = "UPDATE GameData SET blackUsername = NULL WHERE gameID = ? AND blackUsername = ?";
-            try (var ps = conn.prepareStatement(removeBlack)) {
-                ps.setInt(1, gameID);
-                ps.setString(2, authData.username());
-                ps.executeUpdate();
-            }
 
             String join = null;
             if (team == ChessGame.TeamColor.WHITE) {
