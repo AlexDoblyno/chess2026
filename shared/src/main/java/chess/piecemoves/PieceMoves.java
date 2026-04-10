@@ -19,7 +19,7 @@ public abstract class PieceMoves {
         this.GameBoard = GameBoard;
         this.StartPosition = StartPosition;
         Team = GameBoard.getPiece(StartPosition).getTeamColor();
-        MoveList = new HashSet<ChessMove>();
+        MoveList = new HashSet<>();
     }
 
     public void calculateMoves(){}
@@ -34,18 +34,13 @@ public abstract class PieceMoves {
 
     protected boolean checkSpace(ChessPosition EndPosition) {
         if (GameBoard.getPiece(EndPosition) != null) {
-            if (GameBoard.getPiece(EndPosition).getTeamColor() != Team) {
+            if (GameBoard.getPiece(EndPosition).getTeamColor() != Team)
                 MoveList.add(new ChessMove(StartPosition, EndPosition));
-                System.out.print("Captured piece at (" + EndPosition.getRow() + ", " + EndPosition.getColumn() + "): ");
-            }
-            System.out.println("Stop checking");
             return false;
         }
-        else {
-            MoveList.add(new ChessMove(StartPosition, EndPosition));
-            System.out.println("Added move to null space at (" + EndPosition.getRow() + ", " + EndPosition.getColumn() + ") ");
-            return true;
-        }
+
+        MoveList.add(new ChessMove(StartPosition, EndPosition));
+        return true;
     }
 
     @Override

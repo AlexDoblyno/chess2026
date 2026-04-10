@@ -15,8 +15,11 @@ public class ChessGame {
     ChessBoard GameBoard;
     ChessMove previousMove;
     CastlingHistory castlingHistory;
-    CheckStalemate checkStalemate;
-    CheckDeterminer CheckDeterminer;
+    transient CheckStalemate checkStalemate;
+    transient CheckDeterminer CheckDeterminer;
+    // resign 状态要跟着棋局一起序列化，重启后也不能丢
+    private boolean resigned;
+    private GameStatus gameStatus;
 
     public ChessGame() {
         CurrentTeam = TeamColor.WHITE;
@@ -26,6 +29,8 @@ public class ChessGame {
         castlingHistory = new CastlingHistory();
         checkStalemate = new CheckStalemate(GameBoard);
         CheckDeterminer = new CheckDeterminer(GameBoard);
+        resigned = false;
+        gameStatus = GameStatus.ACTIVE;
     }//添加平局与将军
 
     /**
@@ -42,6 +47,30 @@ public class ChessGame {
      */
     public void setTeamTurn(TeamColor team) {
         CurrentTeam = team;
+        if (!resigned)
+            gameStatus = GameStatus.ACTIVE;
+    }
+
+    public boolean isResigned() {
+        return resigned;
+    }
+
+    public void markResigned() {
+        resigned = true;
+        gameStatus = GameStatus.RESIGNED;
+    }
+
+    public boolean isGameOver() {
+        return switch (getGameStatus()) {
+            case CHECKMATE, STALEMATE, RESIGNED -> true;
+            default -> false;
+        };
+    }
+
+    public GameStatus getGameStatus() {
+        if (gameStatus != null)
+            return gameStatus;
+        return resigned ? GameStatus.RESIGNED : GameStatus.ACTIVE;
     }
 
     /**
@@ -51,6 +80,14 @@ public class ChessGame {
         WHITE,
         BLACK,
         OBSERVE
+    }
+
+    public enum GameStatus {
+        ACTIVE,
+        CHECK,
+        CHECKMATE,
+        STALEMATE,
+        RESIGNED
     }
 
     /**
@@ -185,6 +222,8 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+        if (isGameOver())
+            throw new InvalidMoveException("game is over");
         if (GameBoard.getPiece(move.getStartPosition()) == null) {
             throw new InvalidMoveException("no piece at start position");
         }
@@ -203,6 +242,29 @@ public class ChessGame {
             rookKingHasMoved(move);
             CurrentTeam = (CurrentTeam == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE; // <- Me trying to make my code more concise
         }
+    }
+
+    public void refreshGameStatus() {
+        if (resigned) {
+            gameStatus = GameStatus.RESIGNED;
+            return;
+        }
+        if (isInCheckmate(CurrentTeam)) {
+            gameStatus = GameStatus.CHECKMATE;
+            return;
+        }
+        if (isInStalemate(CurrentTeam)) {
+            gameStatus = GameStatus.STALEMATE;
+            return;
+        }
+        gameStatus = isInCheck(CurrentTeam) ? GameStatus.CHECK : GameStatus.ACTIVE;
+    }
+
+    private void ensureHelpers() {
+        if (checkStalemate == null)
+            checkStalemate = new CheckStalemate(GameBoard);
+        if (CheckDeterminer == null)
+            CheckDeterminer = new CheckDeterminer(GameBoard);
     }
 
     /**
@@ -369,6 +431,7 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor TeamColor) {
+        ensureHelpers();
         CheckDeterminer.setGameBoard(GameBoard);
         return CheckDeterminer.isInCheck(TeamColor);
     }
@@ -415,6 +478,7 @@ public class ChessGame {
     }
 
     public boolean isInStalemate(TeamColor TeamColor) {
+        ensureHelpers();
         checkStalemate.setGameBoard(GameBoard);
         return checkStalemate.isInStalemate(isInCheck(TeamColor), getAllTeamMoves(TeamColor));
     }
@@ -428,6 +492,9 @@ public class ChessGame {
         ChessPosition setPosition;
         ChessPiece setPiece;
         castlingHistory.resetHistory();
+        previousMove = null;
+        resigned = false;
+        gameStatus = GameStatus.ACTIVE;
         for (int i = 1; i <= 8; i++) {
             for (int j = 1; j <= 8; j++) {
                 setPosition = new ChessPosition(i, j);
@@ -440,6 +507,7 @@ public class ChessGame {
                 }
             }
         }
+        ensureHelpers();
     }
 
     /**
@@ -459,11 +527,14 @@ public class ChessGame {
         if (!(o instanceof ChessGame chessGame)) {
             return false;
         }
-        return CurrentTeam == chessGame.CurrentTeam && Objects.equals(GameBoard, chessGame.GameBoard);
+        return resigned == chessGame.resigned
+                && CurrentTeam == chessGame.CurrentTeam
+                && getGameStatus() == chessGame.getGameStatus()
+                && Objects.equals(GameBoard, chessGame.GameBoard);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(CurrentTeam, GameBoard);
+        return Objects.hash(CurrentTeam, GameBoard, resigned, getGameStatus());
     }
 }

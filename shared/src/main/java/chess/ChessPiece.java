@@ -3,7 +3,6 @@ package chess;
 import chess.piecemoves.*;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -16,8 +15,6 @@ public class ChessPiece {
 
     private ChessGame.TeamColor pieceColor;
     private PieceType type;
-    private PieceMoves selectedPiece;
-    private HashSet<PieceMoves> moveList;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor = pieceColor;
@@ -58,33 +55,16 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        return switch (board.getPiece(myPosition).getPieceType()) {
-            case ROOK -> {
-                selectedPiece = new RookMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
-            case BISHOP -> {
-                selectedPiece = new BishopMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
-            case QUEEN -> {
-                selectedPiece = new QueenMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
-            case KNIGHT -> {
-                selectedPiece = new KnightMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
-            case KING -> {
-                selectedPiece = new KingMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
-            case PAWN -> {
-                selectedPiece = new PawnMoves(board, myPosition);
-                yield selectedPiece.getMoveList();
-            }
+        PieceMoves pieceMoves = switch (board.getPiece(myPosition).getPieceType()) {
+            case ROOK -> new RookMoves(board, myPosition);
+            case BISHOP -> new BishopMoves(board, myPosition);
+            case QUEEN -> new QueenMoves(board, myPosition);
+            case KNIGHT -> new KnightMoves(board, myPosition);
+            case KING -> new KingMoves(board, myPosition);
+            case PAWN -> new PawnMoves(board, myPosition);
             case null, default -> null;
         };
+        return pieceMoves == null ? null : pieceMoves.getMoveList();
     }
 
     @Override
@@ -95,11 +75,11 @@ public class ChessPiece {
         if (!(o instanceof ChessPiece that)) {
             return false;
         }
-        return pieceColor == that.pieceColor && type == that.type && Objects.equals(moveList, that.moveList);
+        return pieceColor == that.pieceColor && type == that.type;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pieceColor, type, moveList);
+        return Objects.hash(pieceColor, type);
     }
 }

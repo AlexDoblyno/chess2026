@@ -3,9 +3,9 @@ package models;
 import chess.ChessGame;
 import com.google.gson.Gson;
 
-public record GameData(int gameID, String whiteUsername, String blackUsername, String gameName, ChessGame game) {
+import java.util.Objects;
 
-    // 删除了未使用的 setGameID()
+public record GameData(int gameID, String whiteUsername, String blackUsername, String gameName, ChessGame game) {
 
     public GameData setWhiteUsername(String whiteUsername) {
         return new GameData(this.gameID, whiteUsername, this.blackUsername, this.gameName, this.game);
@@ -15,8 +15,20 @@ public record GameData(int gameID, String whiteUsername, String blackUsername, S
         return new GameData(this.gameID, this.whiteUsername, blackUsername, this.gameName, this.game);
     }
 
-    // 删除了未使用的 setGameName()
+    public GameData setGame(ChessGame game) {
+        return new GameData(this.gameID, this.whiteUsername, this.blackUsername, this.gameName, game);
+    }
 
+    public GameData clearPlayer(String username) {
+        GameData updatedGame = this;
+        if (Objects.equals(this.whiteUsername, username))
+            updatedGame = updatedGame.setWhiteUsername(null);
+        if (Objects.equals(this.blackUsername, username))
+            updatedGame = updatedGame.setBlackUsername(null);
+        return updatedGame;
+    }
+
+    @Override
     public String toString() {
         return new Gson().toJson(this);
     }
