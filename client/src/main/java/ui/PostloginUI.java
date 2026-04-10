@@ -36,6 +36,7 @@ public class PostloginUI extends BaseUI {
                 return displayHelpInfo();
             }
         }
+        return null;
     }
 
     private String list() throws ResponseException {
