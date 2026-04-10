@@ -15,46 +15,45 @@ public class PostloginUI extends BaseUI {
 
     @Override
     public String handler(String input) throws ResponseException {
-        String[] tokens = input.split(" ");
+        String[] tokens = tokenizeInput(input);
         switch (tokens[0].toLowerCase()) {
             case "list" -> {
                 return list();
             }
             case "create" -> {
-                return create(tokens);
+                return create(input);
             }
-            // 注意这里：改成了 return，以便能返回报错字符串
             case "join" -> {
-                return join(tokens);
+                join(tokens);
+                return null;
             }
             case "observe" -> {
-                return observe(tokens);
+                observe(tokens);
+                return null;
             }
             case "logout" -> logoutUser();
             default -> {
                 return displayHelpInfo();
             }
-        };
-        return null;
+        }
     }
 
     private String list() throws ResponseException {
         return client.listGames();
     }
 
-    private String create(String[] tokens) throws ResponseException {
-        validateParameterLength(tokens, 2);
-        String gameName = tokens[1];
-        return client.createGame(gameName);
+    private String create(String input) throws ResponseException {
+        String[] parts = input.trim().split("\\s+", 2);
+        if (parts.length < 2 || parts[1].isBlank())
+            throw new ResponseException("Create requires a game name.", 400);
+        return client.createGame(parts[1].trim());
     }
 
-    // 把 void 改成了 String
-    private String join(String[] tokens) throws ResponseException {
+    private void join(String[] tokens) throws ResponseException {
         validateParameterLength(tokens, 3);
         String joinTeam;
         String gameIDStr;
 
-        // 智能识别参数顺序：支持 "join white 1" 和 "join 1 white"
         if (tokens[1].matches("\\d+")) {
             gameIDStr = tokens[1];
             joinTeam = tokens[2];
@@ -67,62 +66,44 @@ public class PostloginUI extends BaseUI {
         try {
             gameID = Integer.parseInt(gameIDStr);
         } catch (NumberFormatException e) {
-            return "Error: Invalid game ID number.\n";
+            throw new ResponseException("Game number must be a number.", 400);
         }
 
-        if (!joinTeam.equalsIgnoreCase("WHITE") && !joinTeam.equalsIgnoreCase("BLACK")) {
-            return "Error: Invalid team color. Please choose 'white' or 'black'.\n";
-        }
+        ChessGame.TeamColor teamColor = parseTeamColor(joinTeam);
+        if (teamColor == null)
+            throw new ResponseException("Choose 'white' or 'black' when joining a game.", 400);
 
-        // 调用客户端逻辑去尝试加入游戏
-        String result = client.joinGame(joinTeam, gameIDStr);
-
-        // 🚨 【核心修复点】：如果返回值里包含了 Failed 或者 Error，说明没加进去。
-        // 我们直接返回报错信息，停止往下走，不切入 GameUI！
-        if (result.contains("Failed") || result.contains("Error")) {
-            return result + "\n\n"; // 多加两个回车，防止跟下一个输入框粘连
-        }
-
-        ChessGame.TeamColor teamColor = (joinTeam.equalsIgnoreCase("WHITE") ?
-                ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK);
-
-        GameData gameData = client.getDataCache().getGameByIndex(gameID);
-        if (gameData == null) {
-            return "Error: Game not found. Please check your game list.\n";
-        }
-
-        ChessboardDrawer drawer = new ChessboardDrawer(gameData.game(), teamColor);
-        GameUI gameUI = new GameUI(client, drawer, true);
-
-        // 如果上面一切顺利，才会抛出异常跳转进游戏房间，并打印棋盘
-        throw new UIStateException(gameUI, result);
+        GameData gameData = client.joinGame(teamColor, gameID);
+        GameUI gameUI = new GameUI(client, gameData, teamColor, true);
+        throw new UIStateException(gameUI, gameUI.initialScreen());
     }
 
-    private String observe(String[] tokens) throws ResponseException {
+    private void observe(String[] tokens) throws ResponseException {
         validateParameterLength(tokens, 2);
-        int gameID = Integer.parseInt(tokens[1]);
-        String result = client.observeGame(tokens[1]);
-
-        // 观战也加上失败拦截
-        if (result.contains("Failed") || result.contains("Error")) {
-            return result + "\n\n";
+        int gameID;
+        try {
+            gameID = Integer.parseInt(tokens[1]);
+        } catch (NumberFormatException e) {
+            throw new ResponseException("Game number must be a number.", 400);
         }
 
-        GameData gameData = client.getDataCache().getGameByIndex(gameID);
-        if (gameData == null) {
-            return "Error: Game not found.\n";
-        }
-
-        ChessboardDrawer drawer = new ChessboardDrawer(gameData.game(), ChessGame.TeamColor.WHITE);
-        GameUI gameUI = new GameUI(client, drawer, false);
-
-        throw new UIStateException(gameUI, result);
+        GameData gameData = client.observeGame(gameID);
+        GameUI gameUI = new GameUI(client, gameData, ChessGame.TeamColor.WHITE, false);
+        throw new UIStateException(gameUI, gameUI.initialScreen());
     }
 
     private void logoutUser() throws ResponseException {
         String result = client.logout();
         client.getDataCache().setAuthToken(null);
         throw new UIStateException(new PreloginUI(client), result);
+    }
+
+    private ChessGame.TeamColor parseTeamColor(String token) {
+        if (token.equalsIgnoreCase("white"))
+            return ChessGame.TeamColor.WHITE;
+        if (token.equalsIgnoreCase("black"))
+            return ChessGame.TeamColor.BLACK;
+        return null;
     }
 
     @Override

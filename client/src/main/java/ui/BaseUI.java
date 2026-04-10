@@ -4,13 +4,12 @@ import client.ChessClient;
 import exception.ResponseException;
 import exception.UIStateException;
 
-import java.io.InputStream;
 import java.util.Scanner;
 
 public abstract class BaseUI implements UIState{
     protected final ChessClient client;
     public UIStatesEnum state;
-    private Scanner scanner;
+    private final Scanner scanner;
 
     public BaseUI(ChessClient client) {
         scanner = new Scanner(System.in);
@@ -18,31 +17,50 @@ public abstract class BaseUI implements UIState{
     }
 
     public void validateParameterLength(String[] params, int expectedLength) throws ResponseException {
-        if (params.length < expectedLength) {
-            throw new ResponseException("Parameters missing", 400);
-        }
-        else if (params.length > expectedLength) {
-            throw new ResponseException("Too many parameters given", 400);
-        }
+        if (params.length < expectedLength)
+            throw new ResponseException("Not enough parameters.", 400);
+        if (params.length > expectedLength)
+            throw new ResponseException("Too many parameters.", 400);
     }
 
-    public BaseUI run() throws ResponseException {
-        boolean keepRunning = true;
+    protected String[] tokenizeInput(String input) {
+        return input.trim().split("\\s+");
+    }
 
-        // Trim inputs for accuracy （**trim input"** 是指对用户输入的内容进行处理，移除 **字符串两端的多余空白字符**）
+    protected String formatError(String message) {
+        return EscapeSequences.SET_TEXT_COLOR_RED + message + EscapeSequences.RESET_TEXT_COLOR;
+    }
+
+    public BaseUI run() {
+        boolean keepRunning = true;
+        System.out.print("> ");
+
         while (keepRunning) {
+            if (!scanner.hasNextLine())
+                return null;
+
             String input = scanner.nextLine().trim();
+            if (input.isBlank()) {
+                System.out.print("> ");
+                continue;
+            }
 
             try {
                 String result = handler(input);
-                if ("quit".equalsIgnoreCase(input)) {
+                if ("quit".equalsIgnoreCase(input))
                     keepRunning = false;
-                }
-                System.out.println(result);
-                System.out.print("> ");
+
+                if (result != null && !result.isBlank())
+                    System.out.println(result);
+                if (keepRunning)
+                    System.out.print("> ");
             } catch (UIStateException e) {
-                System.out.print(e.getMessage());
+                if (e.getMessage() != null && !e.getMessage().isBlank())
+                    System.out.println(e.getMessage());
                 return e.getNextState();
+            } catch (ResponseException e) {
+                System.out.println(formatError(e.getMessage()));
+                System.out.print("> ");
             }
         }
         return null;

@@ -299,7 +299,7 @@ public class Service {
                 throw new ServerException(new String("bad request"), 400);
             }
 
-            // 极度臃肿的颜色和占位判断
+            // 极度臃肿的颜色和占位判断！！！但我不想改！
             if (teamColor == ChessGame.TeamColor.WHITE) {
                 boolean isWhiteTaken = false;
                 if (gameData.whiteUsername() != null) {

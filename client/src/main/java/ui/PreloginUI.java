@@ -12,7 +12,7 @@ public class PreloginUI extends BaseUI {
 
     @Override
     public String handler(String input) throws ResponseException {
-        String[] tokens = input.split(" ");
+        String[] tokens = tokenizeInput(input);
         switch (tokens[0].toLowerCase()) {
             case "register" ->  {
                 register(tokens);
@@ -22,7 +22,7 @@ public class PreloginUI extends BaseUI {
             }
             case "quit" -> {return "quit";}
             default -> {return displayHelpInfo();}
-        };
+        }
         return null;
     }
 
